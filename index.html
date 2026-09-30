@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FF7A1A">
+<title>Corre Motoboy</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#14171a;--card:#1e2226;--card2:#262b30;--tx:#f2f2f0;--mut:#9aa3ab;--acc:#ff7a1a;--acc2:#ffb300;--ok:#33c17a;--bad:#ff5c5c;--bd:#31363b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bd)}
+header b{font-size:19px;letter-spacing:-.02em}
+header b span{color:var(--acc)}
+main{max-width:520px;margin:0 auto;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 30px)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.k{color:var(--mut);font-size:12.5px}
+.v{font-size:24px;font-weight:700;letter-spacing:-.02em}
+input,select{width:100%;min-height:48px;padding:12px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--card2);color:var(--tx);font:inherit;outline:none}
+input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+label.lbl{font-size:13px;font-weight:600;color:var(--mut);display:block;margin:2px 0 6px}
+.btn{border:0;background:var(--acc);color:#1a1204;min-height:50px;padding:12px 20px;border-radius:14px;font-size:15.5px;font-weight:700;cursor:pointer;width:100%}
+.btn.ok{background:var(--ok);color:#06210f}
+.btn.bad{background:var(--bad);color:#2a0000}
+.btn.ghost{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+.btn:disabled{opacity:.55}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sw{position:relative;width:54px;height:30px;border-radius:20px;background:var(--card2);border:1px solid var(--bd);cursor:pointer;flex:none}
+.sw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--mut);transition:.2s}
+.sw.on{background:color-mix(in srgb,var(--ok) 30%,var(--card2))}
+.sw.on i{left:27px;background:var(--ok)}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px}
+.pill.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.pill.warn{background:color-mix(in srgb,var(--acc2) 18%,transparent);color:var(--acc2)}
+#map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
+#map{height:180px;border-radius:14px;overflow:hidden;margin-top:10px;border:1px solid var(--bd)}
+.empty{color:var(--mut);text-align:center;padding:28px 10px;font-size:14px}
+.req{border:1px solid var(--acc);border-radius:16px;padding:16px;margin-bottom:12px;background:color-mix(in srgb,var(--acc) 8%,var(--card))}
+.req .val{font-size:28px;font-weight:800;color:var(--acc2)}
+a.wa{color:var(--ok);text-decoration:none;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:88vw;text-align:center}
+#toast.show{transform:translate(-50%,0);opacity:1}
+</style>
+</head>
+<body>
+<header><b>🏍️ Corre <span>Motoboy</span></b></header>
+<main id="app"></main>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script>
+"use strict";
+const SB="https://ypexcilbnzbpqpwvvlxa.supabase.co",KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZXhjaWxibnpicHFwd3Z2bHhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NjQ5NjIsImV4cCI6MjEwNjE0MDk2Mn0.5ocmMrvSa7BumEJ3obzLMFiLheLHgUA1LxL33MDAu7w";
+const $=id=>document.getElementById(id);
+const uid=()=>localStorage.getItem("moto_id");
+const brl=n=>(+n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+let tToast=null;
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tToast);tToast=setTimeout(()=>t.classList.remove("show"),2600)}
+async function api(path,opt={}){
+  const r=await fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:opt.prefer||"return=representation",...(opt.headers||{})}});
+  if(!r.ok)throw new Error("erro "+r.status+": "+(await r.text()).slice(0,160));
+  const ct=r.headers.get("content-type")||"";
+  return ct.includes("json")?r.json():null;
+}
+async function getMe(){const l=await api("motoboys?id=eq."+uid()+"&select=*");return l&&l[0]}
+async function updMe(fields){return api("motoboys?id=eq."+uid(),{method:"PATCH",body:JSON.stringify(fields),prefer:"return=minimal"})}
+
+let me=null,map=null,marker=null,watchId=null,sendTm=null,poller=null;
+
+function onboarding(){
+  $("app").innerHTML=`<div class="card">
+    <div class="sec" style="font-weight:700;margin-bottom:10px">👋 Bem-vindo! Cadastro rápido</div>
+    <label class="lbl">Seu nome</label><input id="oNome" placeholder="Nome completo">
+    <label class="lbl" style="margin-top:10px">Telefone (WhatsApp)</label><input id="oTel" placeholder="(49) 9....-....">
+    <label class="lbl" style="margin-top:10px">Preço por km (R$)</label><input id="oPreco" type="number" step="0.10" min="0" value="2.50">
+    <button class="btn" id="oGo" style="margin-top:14px">🏍️ Começar a rodar</button>
+  </div>`;
+  $("oGo").onclick=async()=>{
+    const nome=$("oNome").value.trim(),tel=$("oTel").value.trim(),preco=+$("oPreco").value||2.5;
+    if(!nome){toast("Informe seu nome");return}
+    $("oGo").disabled=true;$("oGo").textContent="Cadastrando…";
+    try{
+      const r=await api("motoboys",{method:"POST",body:JSON.stringify({nome,telefone:tel,preco_km:preco})});
+      localStorage.setItem("moto_id",r[0].id);
+      me=r[0];render();
+    }catch(e){toast("Erro: "+e.message);$("oGo").disabled=false;$("oGo").textContent="🏍️ Começar a rodar"}
+  };
+}
+
+function painel(){
+  $("app").innerHTML=`
+  <div class="card">
+    <div class="toggle">
+      <div><div class="k">Status</div><div class="v" id="stLbl">${me.online?"🟢 Online":"⚪ Offline"}</div></div>
+      <div class="sw ${me.online?"on":""}" id="swOn"><i></i></div>
+    </div>
+    <div id="map"></div>
+  </div>
+  <div class="card">
+    <label class="lbl">Seu preço por km</label>
+    <div class="row" style="gap:10px">
+      <input id="preco" type="number" step="0.10" min="0" value="${me.preco_km}">
+      <button class="btn ghost" id="salvarPreco" style="width:auto;white-space:nowrap">Salvar</button>
+    </div>
+  </div>
+  <div class="sec" style="font-weight:700;margin:6px 2px">📦 Pedidos</div>
+  <div id="pedidos"><div class="empty">Fique online para receber pedidos.</div></div>
+  `;
+  $("swOn").onclick=toggleOnline;
+  $("salvarPreco").onclick=async()=>{
+    const v=+$("preco").value||0;await updMe({preco_km:v});me.preco_km=v;toast("Preço atualizado ✓");
+  };
+  initMap();
+  refreshPedidos();
+  clearInterval(poller);poller=setInterval(refreshPedidos,4000);
+}
+
+const motoIcon=L.divIcon({html:'<div style="font-size:26px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))">🏍️</div>',className:"",iconSize:[30,30],iconAnchor:[15,15]});
+function initMap(){
+  if(map){map.remove();map=null}
+  map=L.map("map",{zoomControl:false,attributionControl:false}).setView([me.lat||-27.816,me.lng||-50.326],14);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+  marker=L.marker([me.lat||-27.816,me.lng||-50.326],{icon:motoIcon}).addTo(map);
+}
+
+async function toggleOnline(){
+  if(!me.online){
+    if(!("geolocation" in navigator)){toast("Seu navegador não suporta localização");return}
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      me.online=true;me.lat=pos.coords.latitude;me.lng=pos.coords.longitude;
+      await updMe({online:true,lat:me.lat,lng:me.lng,atualizado_em:new Date().toISOString()});
+      startWatch();painel();
+    },err=>{toast("Ative a localização para ficar online")},{enableHighAccuracy:true});
+  }else{
+    stopWatch();me.online=false;await updMe({online:false});painel();
+  }
+}
+function startWatch(){
+  stopWatch();
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    me.lat=pos.coords.latitude;me.lng=pos.coords.longitude;
+    if(marker)marker.setLatLng([me.lat,me.lng]);
+  },null,{enableHighAccuracy:true,maximumAge:5000});
+  sendTm=setInterval(()=>{if(me.lat&&me.lng)updMe({lat:me.lat,lng:me.lng,atualizado_em:new Date().toISOString()})},8000);
+}
+function stopWatch(){
+  if(watchId!=null)navigator.geolocation.clearWatch(watchId);watchId=null;
+  clearInterval(sendTm);sendTm=null;
+}
+
+async function refreshPedidos(){
+  let lista=[];
+  try{lista=await api("corridas?motoboy_id=eq."+uid()+"&status=in.(pendente,aceita,a_caminho)&order=criado_em.desc")}catch(e){return}
+  const box=$("pedidos");if(!box)return;
+  if(!lista.length){box.innerHTML='<div class="empty">Nenhum pedido no momento.</div>';return}
+  box.innerHTML=lista.map(c=>{
+    const wa=c.cliente_tel?`<a class="wa" target="_blank" href="https://wa.me/${soDig(c.cliente_tel)}">💬 Falar com ${esc(c.cliente_nome)}</a>`:esc(c.cliente_nome);
+    const nav=`https://www.google.com/maps/dir/?api=1&origin=${me.lat||""},${me.lng||""}&destination=${c.destino_lat},${c.destino_lng}`;
+    const acoes=c.status==="pendente"
+      ?`<div class="grid2"><button class="btn ok" data-ac="${c.id}:aceita">✅ Aceitar</button><button class="btn bad" data-ac="${c.id}:recusada">✖ Recusar</button></div>`
+      :c.status==="aceita"
+      ?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" href="${nav}">🧭 Abrir rota no mapa</a><button class="btn" data-ac="${c.id}:a_caminho" style="margin-top:10px">🏍️ Estou a caminho</button>`
+      :c.status==="a_caminho"
+      ?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" href="${nav}">🧭 Abrir rota no mapa</a><button class="btn ok" data-ac="${c.id}:concluida" style="margin-top:10px">🏁 Concluir corrida</button>`
+      :"";
+    return `<div class="req">
+      <div class="row"><span class="pill ${c.status==='pendente'?'warn':'ok'}">${lblStatus(c.status)}</span><span class="val">${brl(c.valor)}</span></div>
+      <div class="k" style="margin-top:8px">📍 Destino</div><div>${esc(c.destino_end||"—")}</div>
+      <div class="row" style="margin-top:6px"><span class="k">${(+c.distancia_km).toFixed(1)} km</span>${wa}</div>
+      ${acoes}
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-ac]").forEach(b=>b.onclick=async()=>{
+    const[id,st]=b.dataset.ac.split(":");
+    b.disabled=true;
+    try{await api("corridas?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:st,atualizado_em:new Date().toISOString()}),prefer:"return=minimal"});toast("Atualizado ✓");refreshPedidos()}
+    catch(e){toast("Erro: "+e.message);b.disabled=false}
+  });
+}
+function lblStatus(s){return{pendente:"⏳ Novo pedido",aceita:"✅ Aceito",a_caminho:"🏍️ A caminho"}[s]||s}
+function soDig(t){const d=String(t||"").replace(/\D/g,"");return d.length<=11?"55"+d:d}
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function render(){
+  if(!uid()){onboarding();return}
+  try{me=await getMe();if(!me){localStorage.removeItem("moto_id");onboarding();return}}
+  catch(e){$("app").innerHTML='<div class="empty">Sem conexão. Verifique a internet.</div>';return}
+  painel();
+}
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+render();
+</script>
+</body>
+</html>
