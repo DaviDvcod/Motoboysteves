@@ -60,6 +60,7 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 #alerta{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:24px;background:#ff7a1a;animation:pisca .9s infinite alternate}
 #alerta.on{display:flex}
+#alerta{overflow-y:auto}
 @keyframes pisca{from{background:#ff7a1a}to{background:#ff4d00}}
 @media (prefers-reduced-motion:reduce){#alerta{animation:none}}
 .alBox{width:100%;max-width:420px;text-align:center;color:#1a1204}
@@ -74,7 +75,7 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 <body>
 <header><b>🏍️ STEVE<span>DRIVE</span></b></header>
 <main id="app"></main>
-<div id="alerta"><div class="alBox"><div class="alTit">🏍️ Nova corrida!</div><div class="alVal" id="alVal"></div><div class="alSub" id="alKm"></div><div class="alDest" id="alDest"></div><div style="height:8px;background:#1a120433;border-radius:6px;margin:0 0 18px;overflow:hidden"><div id="alBarI" style="height:100%;width:100%;background:#1a1204;transition:width 1s linear"></div></div><button class="btn ok" id="alAc">✅ Aceitar</button><button class="btn ghost" id="alRe" style="margin-top:10px;color:#1a1204;border-color:#1a1204">✖ Recusar</button></div></div>
+<div id="alerta"><div class="alBox"><div class="alTit">🏍️ Nova corrida!</div><div class="alVal" id="alVal"></div><div class="alSub" id="alKm"></div><div class="alDest" id="alDest"></div><div style="height:8px;background:#1a120433;border-radius:6px;margin:0 0 18px;overflow:hidden"><div id="alBarI" style="height:100%;width:100%;background:#1a1204;transition:width 1s linear"></div></div><button class="btn ok" id="alAc">✅ Aceitar</button><button class="btn ghost" id="alNeg" style="margin-top:10px;color:#1a1204;border-color:#1a1204"></button><div id="alNegBox" style="display:none;margin-top:12px"><input id="alNegV" type="number" step="0.5" min="1" inputmode="decimal" style="text-align:center;font-size:24px;font-weight:800;color:#1a1204;background:#fff"><button class="btn ok" id="alNegGo" style="margin-top:10px">📨 Enviar proposta</button></div><button class="btn ghost" id="alRe" style="margin-top:10px;color:#1a1204;border-color:#1a1204">✖ Recusar</button></div></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
@@ -132,6 +133,19 @@ function mostrarAlerta(c){
   $("alerta").classList.add("on");
   $("alAc").onclick=()=>responder(c.id,"aceita");
   $("alRe").onclick=()=>responder(c.id,"recusada");
+  const rod=+c.rodada||0,rest=3-rod,nb=$("alNeg"),bx=$("alNegBox");
+  bx.style.display="none";nb.style.display=rest>0?"block":"none";
+  nb.textContent="💬 Negociar valor ("+rest+" restante"+(rest>1?"s":"")+")";
+  nb.onclick=()=>{clearInterval(alCd);$("alBarI").style.width="0";$("alRe").textContent="✖ Recusar";$("alNegV").value=(+c.valor).toFixed(2);bx.style.display="block";nb.style.display="none";$("alNegV").focus()};
+  $("alNegGo").onclick=async()=>{
+    const v=Math.round((+$("alNegV").value)*100)/100;
+    if(!(v>0)||v>(+c.valor)*3){toast("Informe um valor válido");return}
+    if(v===+c.valor){toast("Para esse valor, toque em Aceitar");return}
+    $("alNegGo").disabled=true;
+    try{await api("corridas?id=eq."+c.id,{method:"PATCH",body:JSON.stringify({status:"proposta",contra_valor:v,rodada:rod+1,atualizado_em:new Date().toISOString()}),prefer:"return=minimal"});toast("Proposta enviada ✓");pararAlerta();refreshPedidos()}
+    catch(e){toast("Erro: "+e.message)}
+    $("alNegGo").disabled=false;
+  };
   clearInterval(alTm);clearInterval(alCd);
   let sg=30;$("alBarI").style.width="100%";$("alRe").textContent="✖ Recusar (30s)";
   alCd=setInterval(()=>{sg--;$("alBarI").style.width=(sg/30*100)+"%";$("alRe").textContent="✖ Recusar ("+Math.max(sg,0)+"s)";if(sg<=0){clearInterval(alCd);responder(c.id,"recusada")}},1000);
@@ -351,7 +365,7 @@ function stopWatch(){
 
 async function refreshPedidos(){
   let lista=[];
-  try{lista=await api("corridas?motoboy_id=eq."+uid()+"&status=in.(pendente,aceita,a_caminho)&order=criado_em.desc")}catch(e){return}
+  try{lista=await api("corridas?motoboy_id=eq."+uid()+"&status=in.(pendente,proposta,aceita,a_caminho)&order=criado_em.desc")}catch(e){return}
   const pend=lista.filter(c=>c.status==="pendente");
   pend.forEach(c=>{if(!seen.has(c.id)){seen.add(c.id);notificar(c)}});
   if(alId&&!pend.some(c=>String(c.id)===String(alId)))pararAlerta();
@@ -371,6 +385,7 @@ async function refreshPedidos(){
       :"";
     return `<div class="req">
       <div class="row"><span class="pill ${c.status==='pendente'?'warn':'ok'}">${lblStatus(c.status)}</span><span class="val">${brl(c.valor)}</span></div>
+      ${c.status==="proposta"?`<div class="k" style="margin-top:8px">Sua proposta: <b>${brl(c.contra_valor)}</b> · aguardando o cliente</div>`:""}
       <div class="k" style="margin-top:8px">📍 Destino</div><div>${esc(c.destino_end||"—")}</div>
       <div class="row" style="margin-top:6px"><span class="k">${(+c.distancia_km).toFixed(1)} km</span>${wa}</div>
       ${acoes}
@@ -383,7 +398,7 @@ async function refreshPedidos(){
     catch(e){toast("Erro: "+e.message);b.disabled=false}
   });
 }
-function lblStatus(s){return{pendente:"⏳ Novo pedido",aceita:"✅ Aceito",a_caminho:"🏍️ A caminho"}[s]||s}
+function lblStatus(s){return{pendente:"⏳ Novo pedido",proposta:"💬 Proposta enviada",aceita:"✅ Aceito",a_caminho:"🏍️ A caminho"}[s]||s}
 function soDig(t){const d=String(t||"").replace(/\D/g,"");return d.length<=11?"55"+d:d}
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
