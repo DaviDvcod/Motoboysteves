@@ -233,7 +233,7 @@ function mostrarAlerta(c){
   alId=c.id;
   $("alTit").textContent=tp(c).tit;
   $("alVal").textContent=brl(c.valor);
-  $("alDest").textContent="📍 "+(c.destino_end||"—");
+  $("alDest").style.whiteSpace="pre-line";$("alDest").textContent=(c.origem_end?"🟢 "+(c.tipo==="entrega"?"Coleta":"Embarque")+": "+c.origem_end+"\n":"")+"🏁 Destino: "+(c.destino_end||"—");
   $("alKm").textContent=(+c.distancia_km).toFixed(1)+" km"+(c.cliente_nome?" · "+c.cliente_nome:"")+(Math.abs(+c.valor-(+c.distancia_km)*(+me.preco_km||0))>0.01?" · 💬 valor sugerido pelo cliente":"");
   $("alerta").classList.add("on");
   $("alAc").onclick=()=>responder(c.id,"aceita");
@@ -398,10 +398,11 @@ function limparRota(){
 }
 async function rota(c){
   if(rBusy||!me.lat)return;
-  const key=c.id+":"+c.status,mudou=key!==rKey;
+  const ir=c.origem_lat!=null&&!c.coletado_em,key=c.id+":"+c.status+":"+(ir?"o":"d"),mudou=key!==rKey;
   if(!mudou&&rFrom&&dist(me.lat,me.lng,rFrom[0],rFrom[1])<100)return;
   rBusy=true;
-  const dl=+c.destino_lat,dg=+c.destino_lng;
+  if(mudou&&dMark&&map){map.removeLayer(dMark);dMark=null}
+  const dl=+(ir?c.origem_lat:c.destino_lat),dg=+(ir?c.origem_lng:c.destino_lng),pico=ir?"🟢":"🏁";
   try{
     const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),9000);
     const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${me.lng},${me.lat};${dg},${dl}?overview=full&geometries=geojson&steps=true`,{signal:ctl.signal});
@@ -415,7 +416,7 @@ async function rota(c){
       rGlow=L.polyline(pts,{color:"#ff7a1a",weight:12,opacity:.28,lineCap:"round"}).addTo(map);
       rLine=L.polyline(pts,{color:"#ffb300",weight:5,opacity:.95,lineCap:"round",lineJoin:"round"}).addTo(map);
     }
-    if(!dMark)dMark=L.marker([dl,dg],{icon:L.divIcon({html:'<div class="pin">🏁</div>',className:"",iconSize:[30,30],iconAnchor:[6,28]})}).addTo(map);
+    if(!dMark)dMark=L.marker([dl,dg],{icon:L.divIcon({html:'<div class="pin">'+pico+'</div>',className:"",iconSize:[30,30],iconAnchor:[6,28]})}).addTo(map);
     const st=(rt.legs[0].steps||[]).find(s=>s.maneuver&&s.maneuver.type!=="depart"&&s.maneuver.type!=="arrive");
     let prox="";
     if(st){const m=st.maneuver,tx=m.type==="roundabout"||m.type==="rotary"?"Entre na rotatória":(MAN[m.modifier]||"Siga em frente");
@@ -432,7 +433,7 @@ async function rota(c){
     if(mudou&&map){
       limparRota();
       rGlow=L.polyline([[me.lat,me.lng],[dl,dg]],{color:"#ffb300",weight:4,dashArray:"8 10"}).addTo(map);
-      dMark=L.marker([dl,dg],{icon:L.divIcon({html:'<div class="pin">🏁</div>',className:"",iconSize:[30,30],iconAnchor:[6,28]})}).addTo(map);
+      dMark=L.marker([dl,dg],{icon:L.divIcon({html:'<div class="pin">'+pico+'</div>',className:"",iconSize:[30,30],iconAnchor:[6,28]})}).addTo(map);
       rKey=key;rFrom=[me.lat,me.lng];
     }
   }finally{rBusy=false}
@@ -481,19 +482,20 @@ async function refreshPedidos(){
   if(!lista.length){box.innerHTML='<div class="empty">Nenhum pedido no momento.</div>';return}
   box.innerHTML=lista.map(c=>{
     const wa=c.cliente_tel?`<a class="wa" target="_blank" href="https://wa.me/${soDig(c.cliente_tel)}">💬 Falar com ${esc(c.cliente_nome)}</a>`:esc(c.cliente_nome);
-    const nav=`https://www.google.com/maps/dir/?api=1&origin=${me.lat||""},${me.lng||""}&destination=${c.destino_lat},${c.destino_lng}`;
+    const ir=c.origem_lat!=null&&!c.coletado_em,alv=ir?[c.origem_lat,c.origem_lng]:[c.destino_lat,c.destino_lng];
+    const nav=`https://www.google.com/maps/dir/?api=1&origin=${me.lat||""},${me.lng||""}&destination=${alv[0]},${alv[1]}`;
     const acoes=c.status==="pendente"
       ?`<div class="grid2"><button class="btn ok" data-ac="${c.id}:aceita">✅ Aceitar</button><button class="btn bad" data-ac="${c.id}:recusada">✖ Recusar</button></div>`
       :c.status==="aceita"
       ?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" href="${nav}">🧭 Abrir rota no mapa</a><button class="btn" data-ac="${c.id}:a_caminho" style="margin-top:10px">🏍️ Estou a caminho</button>`
       :c.status==="a_caminho"
-      ?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" href="${nav}">🧭 Abrir rota no mapa</a><button class="btn ok" data-ac="${c.id}:concluida" style="margin-top:10px">🏁 Concluir corrida</button>`
+      ?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" href="${nav}">🧭 Abrir rota no mapa</a>${ir?`<button class="btn ok" data-ac="${c.id}:coletou" style="margin-top:10px">${c.tipo==="entrega"?"📦 Coletei o item":"🧍 Passageiro embarcou"}</button>`:`<button class="btn ok" data-ac="${c.id}:concluida" style="margin-top:10px">🏁 Concluir corrida</button>`}`
       :"";
     return `<div class="req">
       <div class="row"><span class="pill ${c.status==='pendente'?'warn':'ok'}">${lblStatus(c.status)}</span><span class="val">${brl(c.valor)}</span></div>
       <div style="margin-top:8px"><span class="pill warn">${tp(c).ico} ${tp(c).nome}</span></div>
       ${c.status==="proposta"?`<div class="k" style="margin-top:8px">Sua proposta: <b>${brl(c.contra_valor)}</b> · aguardando o cliente</div>`:""}
-      <div class="k" style="margin-top:8px">📍 Destino</div><div>${esc(c.destino_end||"—")}</div>
+      ${c.origem_end?`<div class="k" style="margin-top:8px">🟢 ${c.tipo==="entrega"?"Coleta":"Embarque"}${c.coletado_em?" ✓":""}</div><div>${esc(c.origem_end)}</div>`:""}<div class="k" style="margin-top:8px">🏁 Destino final</div><div>${esc(c.destino_end||"—")}</div>
       <div class="row" style="margin-top:6px"><span class="k">${(+c.distancia_km).toFixed(1)} km</span>${wa}</div>
       ${acoes}
     </div>`;
@@ -501,7 +503,7 @@ async function refreshPedidos(){
   box.querySelectorAll("[data-ac]").forEach(b=>b.onclick=async()=>{
     const[id,st]=b.dataset.ac.split(":");
     b.disabled=true;
-    try{await api("corridas?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:st,atualizado_em:new Date().toISOString()}),prefer:"return=minimal"});toast("Atualizado ✓");refreshPedidos();if(st==="concluida")carregarGanhos()}
+    try{const ag=new Date().toISOString();await api("corridas?id=eq."+id,{method:"PATCH",body:JSON.stringify(st==="coletou"?{coletado_em:ag,atualizado_em:ag}:{status:st,atualizado_em:ag}),prefer:"return=minimal"});toast(st==="coletou"?"Confirmado ✓ Siga ao destino":"Atualizado ✓");refreshPedidos();if(st==="concluida")carregarGanhos()}
     catch(e){toast("Erro: "+e.message);b.disabled=false}
   });
 }
