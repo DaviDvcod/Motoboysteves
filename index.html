@@ -75,7 +75,7 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 <body>
 <header><b>🏍️ STEVE<span>DRIVE</span></b></header>
 <main id="app"></main>
-<div id="alerta"><div class="alBox"><div class="alTit">🏍️ Nova corrida!</div><div class="alVal" id="alVal"></div><div class="alSub" id="alKm"></div><div class="alDest" id="alDest"></div><div style="height:8px;background:#1a120433;border-radius:6px;margin:0 0 18px;overflow:hidden"><div id="alBarI" style="height:100%;width:100%;background:#1a1204;transition:width 1s linear"></div></div><button class="btn ok" id="alAc">✅ Aceitar</button><button class="btn ghost" id="alNeg" style="margin-top:10px;color:#1a1204;border-color:#1a1204"></button><div id="alNegBox" style="display:none;margin-top:12px"><input id="alNegV" type="number" step="0.5" min="1" inputmode="decimal" style="text-align:center;font-size:24px;font-weight:800;color:#1a1204;background:#fff"><button class="btn ok" id="alNegGo" style="margin-top:10px">📨 Enviar proposta</button></div><button class="btn ghost" id="alRe" style="margin-top:10px;color:#1a1204;border-color:#1a1204">✖ Recusar</button></div></div>
+<div id="alerta"><div class="alBox"><div class="alTit" id="alTit">🏍️ Nova corrida!</div><div class="alVal" id="alVal"></div><div class="alSub" id="alKm"></div><div class="alDest" id="alDest"></div><div style="height:8px;background:#1a120433;border-radius:6px;margin:0 0 18px;overflow:hidden"><div id="alBarI" style="height:100%;width:100%;background:#1a1204;transition:width 1s linear"></div></div><button class="btn ok" id="alAc">✅ Aceitar</button><button class="btn ghost" id="alNeg" style="margin-top:10px;color:#1a1204;border-color:#1a1204"></button><div id="alNegBox" style="display:none;margin-top:12px"><input id="alNegV" type="number" step="0.5" min="1" inputmode="decimal" style="text-align:center;font-size:24px;font-weight:800;color:#1a1204;background:#fff"><button class="btn ok" id="alNegGo" style="margin-top:10px">📨 Enviar proposta</button></div><button class="btn ghost" id="alRe" style="margin-top:10px;color:#1a1204;border-color:#1a1204">✖ Recusar</button></div></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
@@ -87,6 +87,8 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 const SB="https://bkjywijgogeyekwgqawq.supabase.co",KEY="sb_publishable_v8SlYZngr9uQ0vpBxlPDPg_GBKN_-Or";
 const $=id=>document.getElementById(id);
 const uid=()=>(sessGet()||{}).user_id;
+const TP={passageiro:{ico:"🧍",nome:"Passageiro",tit:"🧍 Novo passageiro!"},entrega:{ico:"📦",nome:"Entrega",tit:"📦 Nova entrega!"}};
+const tp=c=>TP[c&&c.tipo]||TP.passageiro;
 const brl=n=>(+n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 let tToast=null;
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tToast);tToast=setTimeout(()=>t.classList.remove("show"),2600)}
@@ -229,6 +231,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(me&&me
 function pararAlerta(){clearInterval(alCd);clearInterval(alTm);alTm=null;alId=null;const a=$("alerta");if(a)a.classList.remove("on");if(navigator.vibrate)navigator.vibrate(0)}
 function mostrarAlerta(c){
   alId=c.id;
+  $("alTit").textContent=tp(c).tit;
   $("alVal").textContent=brl(c.valor);
   $("alDest").textContent="📍 "+(c.destino_end||"—");
   $("alKm").textContent=(+c.distancia_km).toFixed(1)+" km"+(c.cliente_nome?" · "+c.cliente_nome:"")+(Math.abs(+c.valor-(+c.distancia_km)*(+me.preco_km||0))>0.01?" · 💬 valor sugerido pelo cliente":"");
@@ -256,7 +259,7 @@ function mostrarAlerta(c){
 }
 function notificar(c){
   if(!document.hidden||!("Notification" in window)||Notification.permission!=="granted")return;
-  navigator.serviceWorker.ready.then(r=>r.showNotification("🏍️ Nova corrida! "+brl(c.valor),{body:(c.destino_end||"")+" · "+(+c.distancia_km).toFixed(1)+" km",vibrate:[600,200,600,200,600,200,600],tag:"corrida-"+c.id,requireInteraction:true,icon:"icon-192.png"})).catch(()=>{});
+  navigator.serviceWorker.ready.then(r=>r.showNotification(tp(c).tit+" "+brl(c.valor),{body:(c.destino_end||"")+" · "+(+c.distancia_km).toFixed(1)+" km",vibrate:[600,200,600,200,600,200,600],tag:"corrida-"+c.id,requireInteraction:true,icon:"icon-192.png"})).catch(()=>{});
 }
 async function responder(id,st){
   try{await api("corridas?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:st,atualizado_em:new Date().toISOString()}),prefer:"return=minimal"})}
@@ -488,6 +491,7 @@ async function refreshPedidos(){
       :"";
     return `<div class="req">
       <div class="row"><span class="pill ${c.status==='pendente'?'warn':'ok'}">${lblStatus(c.status)}</span><span class="val">${brl(c.valor)}</span></div>
+      <div style="margin-top:8px"><span class="pill warn">${tp(c).ico} ${tp(c).nome}</span></div>
       ${c.status==="proposta"?`<div class="k" style="margin-top:8px">Sua proposta: <b>${brl(c.contra_valor)}</b> · aguardando o cliente</div>`:""}
       <div class="k" style="margin-top:8px">📍 Destino</div><div>${esc(c.destino_end||"—")}</div>
       <div class="row" style="margin-top:6px"><span class="k">${(+c.distancia_km).toFixed(1)} km</span>${wa}</div>
