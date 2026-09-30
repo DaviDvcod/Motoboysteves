@@ -43,6 +43,15 @@ label.lbl{font-size:13px;font-weight:600;color:var(--mut);display:block;margin:2
 .req .val{font-size:28px;font-weight:800;color:var(--acc2)}
 a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#alerta{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:24px;background:#ff7a1a;animation:pisca .9s infinite alternate}
+#alerta.on{display:flex}
+@keyframes pisca{from{background:#ff7a1a}to{background:#ff4d00}}
+@media (prefers-reduced-motion:reduce){#alerta{animation:none}}
+.alBox{width:100%;max-width:420px;text-align:center;color:#1a1204}
+.alTit{font-size:30px;font-weight:800}
+.alVal{font-size:56px;font-weight:900;margin:6px 0}
+.alSub{font-size:16px;font-weight:600}
+.alDest{font-size:18px;margin:8px 0 22px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:88vw;text-align:center}
 #toast.show{transform:translate(-50%,0);opacity:1}
 </style>
@@ -50,6 +59,7 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 <body>
 <header><b>🏍️ Corre <span>Motoboy</span></b></header>
 <main id="app"></main>
+<div id="alerta"><div class="alBox"><div class="alTit">🏍️ Nova corrida!</div><div class="alVal" id="alVal"></div><div class="alSub" id="alKm"></div><div class="alDest" id="alDest"></div><button class="btn ok" id="alAc">✅ Aceitar</button><button class="btn ghost" id="alRe" style="margin-top:10px;color:#1a1204;border-color:#1a1204">✖ Recusar</button></div></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
@@ -71,6 +81,52 @@ async function getMe(){const l=await api("motoboys?id=eq."+uid()+"&select=*");re
 async function updMe(fields){return api("motoboys?id=eq."+uid(),{method:"PATCH",body:JSON.stringify(fields),prefer:"return=minimal"})}
 
 let me=null,map=null,marker=null,watchId=null,sendTm=null,poller=null;
+let seen=new Set(),ac=null,alTm=null,alId=null,wl=null;
+async function ativarAlertas(){
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();await ac.resume()}catch(e){}
+  let perm="denied";
+  try{perm=await Notification.requestPermission()}catch(e){}
+  apitar();if(navigator.vibrate)navigator.vibrate([300,150,300]);
+  travarTela();
+  const b=$("btnAl");if(b){b.textContent="✅ Ativo";b.disabled=true}
+  toast(perm==="granted"?"Alertas ativados ✓":"Apito ativado. Para avisar fora do app, permita notificações no navegador.");
+}
+function apitar(){
+  if(!ac)return;
+  const t=ac.currentTime;
+  for(let i=0;i<3;i++){
+    const s0=t+i*.55,o=ac.createOscillator(),g=ac.createGain(),l=ac.createOscillator(),lg=ac.createGain();
+    o.type="sine";o.frequency.value=2500;l.frequency.value=40;lg.gain.value=110;
+    l.connect(lg);lg.connect(o.frequency);
+    g.gain.setValueAtTime(0,s0);g.gain.linearRampToValueAtTime(.7,s0+.03);g.gain.setValueAtTime(.7,s0+.38);g.gain.linearRampToValueAtTime(0,s0+.43);
+    o.connect(g);g.connect(ac.destination);
+    o.start(s0);l.start(s0);o.stop(s0+.45);l.stop(s0+.45);
+  }
+}
+async function travarTela(){try{if(navigator.wakeLock&&!wl){wl=await navigator.wakeLock.request("screen");wl.addEventListener("release",()=>{wl=null})}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(me&&me.online)travarTela();refreshPedidos()}});
+function pararAlerta(){clearInterval(alTm);alTm=null;alId=null;const a=$("alerta");if(a)a.classList.remove("on");if(navigator.vibrate)navigator.vibrate(0)}
+function mostrarAlerta(c){
+  alId=c.id;
+  $("alVal").textContent=brl(c.valor);
+  $("alDest").textContent="📍 "+(c.destino_end||"—");
+  $("alKm").textContent=(+c.distancia_km).toFixed(1)+" km"+(c.cliente_nome?" · "+c.cliente_nome:"");
+  $("alerta").classList.add("on");
+  $("alAc").onclick=()=>responder(c.id,"aceita");
+  $("alRe").onclick=()=>responder(c.id,"recusada");
+  clearInterval(alTm);
+  const ciclo=()=>{apitar();if(navigator.vibrate)navigator.vibrate([600,200,600,200,600])};
+  ciclo();alTm=setInterval(ciclo,2600);
+}
+function notificar(c){
+  if(!document.hidden||!("Notification" in window)||Notification.permission!=="granted")return;
+  navigator.serviceWorker.ready.then(r=>r.showNotification("🏍️ Nova corrida! "+brl(c.valor),{body:(c.destino_end||"")+" · "+(+c.distancia_km).toFixed(1)+" km",vibrate:[600,200,600,200,600,200,600],tag:"corrida-"+c.id,requireInteraction:true,icon:"icon-192.png"})).catch(()=>{});
+}
+async function responder(id,st){
+  try{await api("corridas?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:st,atualizado_em:new Date().toISOString()}),prefer:"return=minimal"})}
+  catch(e){toast("Erro: "+e.message);return}
+  pararAlerta();refreshPedidos();
+}
 
 function onboarding(){
   $("app").innerHTML=`<div class="card">
@@ -94,6 +150,7 @@ function onboarding(){
 
 function painel(){
   $("app").innerHTML=`
+  <div class="card"><div class="row"><div><div style="font-weight:700">🔔 Alertas de corrida</div><div class="k">Apito e vibração quando chegar pedido. Toque em Ativar sempre que abrir o app.</div></div><button class="btn ghost" id="btnAl" style="width:auto;white-space:nowrap">Ativar</button></div></div>
   <div class="card">
     <div class="toggle">
       <div><div class="k">Status</div><div class="v" id="stLbl">${me.online?"🟢 Online":"⚪ Offline"}</div></div>
@@ -112,6 +169,7 @@ function painel(){
   <div id="pedidos"><div class="empty">Fique online para receber pedidos.</div></div>
   `;
   $("swOn").onclick=toggleOnline;
+  const bA=$("btnAl");if(ac&&ac.state==="running"){bA.textContent="✅ Ativo";bA.disabled=true}else bA.onclick=ativarAlertas;
   $("salvarPreco").onclick=async()=>{
     const v=+$("preco").value||0;await updMe({preco_km:v});me.preco_km=v;toast("Preço atualizado ✓");
   };
@@ -141,7 +199,7 @@ async function toggleOnline(){
   }
 }
 function startWatch(){
-  stopWatch();
+  stopWatch();travarTela();
   watchId=navigator.geolocation.watchPosition(pos=>{
     me.lat=pos.coords.latitude;me.lng=pos.coords.longitude;
     if(marker)marker.setLatLng([me.lat,me.lng]);
@@ -156,6 +214,10 @@ function stopWatch(){
 async function refreshPedidos(){
   let lista=[];
   try{lista=await api("corridas?motoboy_id=eq."+uid()+"&status=in.(pendente,aceita,a_caminho)&order=criado_em.desc")}catch(e){return}
+  const pend=lista.filter(c=>c.status==="pendente");
+  pend.forEach(c=>{if(!seen.has(c.id)){seen.add(c.id);notificar(c)}});
+  if(alId&&!pend.some(c=>String(c.id)===String(alId)))pararAlerta();
+  if(!alId&&pend.length)mostrarAlerta(pend[0]);
   const box=$("pedidos");if(!box)return;
   if(!lista.length){box.innerHTML='<div class="empty">Nenhum pedido no momento.</div>';return}
   box.innerHTML=lista.map(c=>{
