@@ -55,14 +55,14 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script>
 "use strict";
-const SB="https://ypexcilbnzbpqpwvvlxa.supabase.co",KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwZXhjaWxibnpicHFwd3Z2bHhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NjQ5NjIsImV4cCI6MjEwNjE0MDk2Mn0.5ocmMrvSa7BumEJ3obzLMFiLheLHgUA1LxL33MDAu7w";
+const SB="https://bkjywijgogeyekwgqawq.supabase.co",KEY="sb_publishable_v8SlYZngr9uQ0vpBxlPDPg_GBKN_-Or";
 const $=id=>document.getElementById(id);
 const uid=()=>localStorage.getItem("moto_id");
 const brl=n=>(+n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 let tToast=null;
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tToast);tToast=setTimeout(()=>t.classList.remove("show"),2600)}
 async function api(path,opt={}){
-  const r=await fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:opt.prefer||"return=representation",...(opt.headers||{})}});
+  const r=await fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:KEY,...(KEY.startsWith("eyJ")?{Authorization:"Bearer "+KEY}:{}),"Content-Type":"application/json",Prefer:opt.prefer||"return=representation",...(opt.headers||{})}});
   if(!r.ok)throw new Error("erro "+r.status+": "+(await r.text()).slice(0,160));
   const ct=r.headers.get("content-type")||"";
   return ct.includes("json")?r.json():null;
