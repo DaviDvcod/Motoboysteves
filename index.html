@@ -259,7 +259,7 @@ function mostrarAlerta(c){
 }
 function notificar(c){
   if(!document.hidden||!("Notification" in window)||Notification.permission!=="granted")return;
-  navigator.serviceWorker.ready.then(r=>r.showNotification(tp(c).tit+" "+brl(c.valor),{body:(c.destino_end||"")+" · "+(+c.distancia_km).toFixed(1)+" km",vibrate:[600,200,600,200,600,200,600],tag:"corrida-"+c.id,requireInteraction:true,icon:"icon-192.png"})).catch(()=>{});
+  navigator.serviceWorker.ready.then(r=>r.showNotification(tp(c).tit+" "+brl(c.valor),{body:(c.origem_end?"🟢 "+c.origem_end+"\n":"")+"🏁 "+(c.destino_end||"")+" · "+(+c.distancia_km).toFixed(1)+" km",vibrate:[600,200,600,200,600,200,600],tag:"corrida-"+c.id,requireInteraction:true,icon:"icon-192.png"})).catch(()=>{});
 }
 async function responder(id,st){
   try{await api("corridas?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:st,atualizado_em:new Date().toISOString()}),prefer:"return=minimal"})}
