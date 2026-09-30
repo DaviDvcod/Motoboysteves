@@ -131,23 +131,64 @@ function loginScreen(){
   $("app").innerHTML=`<div class="card">
     <div style="font-weight:700;font-size:17px;margin-bottom:10px">🔐 Entrar no STEVEDRIVE</div>
     <label class="lbl">E-mail</label><input id="lEmail" type="email" autocomplete="email" inputmode="email" placeholder="voce@email.com">
-    <label class="lbl" style="margin-top:10px">Senha (mínimo 6 caracteres)</label><input id="lSenha" type="password" autocomplete="current-password" placeholder="••••••">
+    <label class="lbl" style="margin-top:10px">Senha</label><input id="lSenha" type="password" autocomplete="current-password" placeholder="••••••">
     <button class="btn" id="lEntrar" style="margin-top:14px">Entrar</button>
-    <button class="btn ghost" id="lCriar" style="margin-top:10px">Criar conta</button>
+  </div>
+  <div class="card" style="text-align:center">
+    <div class="k" style="margin-bottom:10px">Ainda não tem conta?</div>
+    <button class="btn ghost" id="lCriar">🏍️ Criar minha conta de motorista</button>
   </div>`;
-  const go=async novo=>{
+  $("lEntrar").onclick=async()=>{
     const email=$("lEmail").value.trim(),password=$("lSenha").value;
     if(!/^\S+@\S+\.\S+$/.test(email)){toast("Informe um e-mail válido");return}
-    if(password.length<6){toast("A senha precisa ter 6 ou mais caracteres");return}
-    $("lEntrar").disabled=$("lCriar").disabled=true;
-    try{
-      const j=await authCall(novo?"/signup":"/token?grant_type=password",{email,password});
-      if(!j.access_token){toast("Conta criada. Confirme o e-mail e toque em Entrar.");return}
-      sessSet(j);render();
-    }catch(e){toast(e.http?e.message:"Sem conexão. Tente de novo.")}
-    finally{const a=$("lEntrar"),b=$("lCriar");if(a)a.disabled=b.disabled=false}
+    if(!password){toast("Informe a senha");return}
+    $("lEntrar").disabled=true;
+    try{const j=await authCall("/token?grant_type=password",{email,password});sessSet(j);render()}
+    catch(e){toast(e.http?e.message:"Sem conexão. Tente de novo.")}
+    finally{const a=$("lEntrar");if(a)a.disabled=false}
   };
-  $("lEntrar").onclick=()=>go(false);$("lCriar").onclick=()=>go(true);
+  $("lCriar").onclick=criarConta;
+}
+function criarConta(){
+  $("app").innerHTML=`<div class="card">
+    <div style="font-weight:700;font-size:17px">🏍️ Criar conta de motorista</div>
+    <div class="k" style="margin:4px 0 12px">Os clientes veem seu nome e seu preço por km. Seu telefone só é liberado para o cliente depois que você aceita a corrida.</div>
+    <label class="lbl">Nome completo</label><input id="cNome" autocomplete="name" placeholder="Seu nome">
+    <label class="lbl" style="margin-top:10px">WhatsApp (com DDD)</label><input id="cTel" type="tel" autocomplete="tel" inputmode="tel" placeholder="(49) 9....-....">
+    <label class="lbl" style="margin-top:10px">Preço por km (R$)</label><input id="cPreco" type="number" step="0.10" min="0.5" inputmode="decimal" value="2.50">
+    <label class="lbl" style="margin-top:10px">E-mail</label><input id="cEmail" type="email" autocomplete="email" inputmode="email" placeholder="voce@email.com">
+    <label class="lbl" style="margin-top:10px">Senha (mínimo 6 caracteres)</label><input id="cSenha" type="password" autocomplete="new-password" placeholder="••••••">
+    <label class="lbl" style="margin-top:10px">Repita a senha</label><input id="cSenha2" type="password" autocomplete="new-password" placeholder="••••••">
+    <button class="btn" id="cGo" style="margin-top:14px">Criar conta e começar</button>
+    <button class="btn ghost" id="cVoltar" style="margin-top:10px">Já tenho conta</button>
+  </div>`;
+  $("cVoltar").onclick=loginScreen;
+  $("cGo").onclick=async()=>{
+    const nome=$("cNome").value.trim(),telefone=$("cTel").value.trim(),preco=+String($("cPreco").value).replace(",","."),
+          email=$("cEmail").value.trim(),senha=$("cSenha").value,senha2=$("cSenha2").value;
+    if(nome.length<2){toast("Informe seu nome");return}
+    const dig=telefone.replace(/\D/g,"");
+    if(dig.length<10||dig.length>13){toast("Informe o WhatsApp com DDD");return}
+    if(!(preco>=0.5&&preco<=50)){toast("Preço por km entre R$ 0,50 e R$ 50");return}
+    if(!/^\S+@\S+\.\S+$/.test(email)){toast("Informe um e-mail válido");return}
+    if(senha.length<6){toast("A senha precisa ter 6 ou mais caracteres");return}
+    if(senha!==senha2){toast("As senhas não são iguais");return}
+    const b=$("cGo");b.disabled=true;b.textContent="Criando conta…";
+    try{
+      const j=await authCall("/signup",{email,password:senha});
+      const perfil={nome,telefone,preco_km:preco};
+      if(!j.access_token){
+        localStorage.setItem("moto_pend",JSON.stringify(perfil));
+        toast("Conta criada! Confirme o e-mail e depois toque em Entrar.");loginScreen();return;
+      }
+      sessSet(j);
+      localStorage.setItem("moto_pend",JSON.stringify(perfil));
+      render();
+    }catch(e){
+      toast(e.http?e.message:"Sem conexão. Tente de novo.");
+      const x=$("cGo");if(x){x.disabled=false;x.textContent="Criar conta e começar"}
+    }
+  };
 }
 async function api(path,opt={}){
   const tk=await token();
@@ -466,7 +507,11 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 
 async function render(){
   if(!sessGet()){loginScreen();return}
-  try{me=await getMe();if(!me){onboarding();return}}
+  try{me=await getMe();
+    const pend=(()=>{try{return JSON.parse(localStorage.getItem("moto_pend")||"null")}catch(e){return null}})();
+    if(!me&&pend){try{await api("motoboys",{method:"POST",prefer:"return=minimal",body:JSON.stringify(Object.assign({id:uid()},pend))});me=await getMe()}catch(e){}}
+    if(me)localStorage.removeItem("moto_pend");
+    if(!me){onboarding();return}}
   catch(e){if(!sessGet())return;$("app").innerHTML='<div class="empty">Sem conexão. Verifique a internet.</div>';return}
   if(me.online&&navigator.geolocation)startWatch();
   painel();
