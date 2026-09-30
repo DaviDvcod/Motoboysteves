@@ -129,7 +129,7 @@ function mostrarAlerta(c){
   alId=c.id;
   $("alVal").textContent=brl(c.valor);
   $("alDest").textContent="📍 "+(c.destino_end||"—");
-  $("alKm").textContent=(+c.distancia_km).toFixed(1)+" km"+(c.cliente_nome?" · "+c.cliente_nome:"");
+  $("alKm").textContent=(+c.distancia_km).toFixed(1)+" km"+(c.cliente_nome?" · "+c.cliente_nome:"")+(Math.abs(+c.valor-(+c.distancia_km)*(+me.preco_km||0))>0.01?" · 💬 valor sugerido pelo cliente":"");
   $("alerta").classList.add("on");
   $("alAc").onclick=()=>responder(c.id,"aceita");
   $("alRe").onclick=()=>responder(c.id,"recusada");
@@ -367,7 +367,7 @@ async function refreshPedidos(){
   let lista=[];
   try{lista=await api("corridas?motoboy_id=eq."+uid()+"&status=in.(pendente,proposta,aceita,a_caminho)&order=criado_em.desc")}catch(e){return}
   const pend=lista.filter(c=>c.status==="pendente");
-  pend.forEach(c=>{if(!seen.has(c.id)){seen.add(c.id);notificar(c)}});
+  pend.forEach(c=>{const k=c.id+":"+c.valor+":"+(c.rodada_cli||0);if(!seen.has(k)){seen.add(k);notificar(c)}});
   if(alId&&!pend.some(c=>String(c.id)===String(alId)))pararAlerta();
   if(!alId&&pend.length)mostrarAlerta(pend[0]);
   syncMapa(lista);
