@@ -86,17 +86,78 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 "use strict";
 const SB="https://bkjywijgogeyekwgqawq.supabase.co",KEY="sb_publishable_v8SlYZngr9uQ0vpBxlPDPg_GBKN_-Or";
 const $=id=>document.getElementById(id);
-const uid=()=>localStorage.getItem("moto_id");
+const uid=()=>(sessGet()||{}).user_id;
 const brl=n=>(+n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 let tToast=null;
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tToast);tToast=setTimeout(()=>t.classList.remove("show"),2600)}
-async function api(path,opt={}){
-  const r=await fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:KEY,...(KEY.startsWith("eyJ")?{Authorization:"Bearer "+KEY}:{}),"Content-Type":"application/json",Prefer:opt.prefer||"return=representation",...(opt.headers||{})}});
-  if(!r.ok)throw new Error("erro "+r.status+": "+(await r.text()).slice(0,160));
-  const ct=r.headers.get("content-type")||"";
-  return ct.includes("json")?r.json():null;
+const AUTH=SB+"/auth/v1";
+const sessGet=()=>{try{return JSON.parse(localStorage.getItem("sb_sess")||"null")}catch(e){return null}};
+function sessSet(j){
+  if(!j){localStorage.removeItem("sb_sess");return}
+  const o=sessGet()||{};
+  localStorage.setItem("sb_sess",JSON.stringify({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000+(j.expires_in||3600)),user_id:(j.user&&j.user.id)||o.user_id||null}));
 }
-async function getMe(){const l=await api("motoboys?id=eq."+uid()+"&select=*");return l&&l[0]}
+function traduz(m){m=String(m||"");
+  if(/invalid login/i.test(m))return"E-mail ou senha incorretos";
+  if(/already registered/i.test(m))return"Esse e-mail já tem conta. Toque em Entrar";
+  if(/at least|weak/i.test(m))return"Senha muito curta (mínimo 6 caracteres)";
+  if(/not confirmed/i.test(m))return"Confirme seu e-mail antes de entrar";
+  if(/rate limit/i.test(m))return"Muitas tentativas. Aguarde um pouco";
+  if(/anonymous/i.test(m))return"Login anônimo desligado no Supabase";
+  return m}
+async function authCall(path,body){
+  const r=await fetch(AUTH+path,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(traduz(j.msg||j.error_description||j.message||j.error||"erro "+r.status));e.http=true;throw e}
+  return j;
+}
+let _tp=null;
+function token(){
+  const s=sessGet();
+  if(s&&s.access_token&&s.expires_at>Date.now()/1000+60)return Promise.resolve(s.access_token);
+  return _tp||(_tp=renovar().finally(()=>{_tp=null}));
+}
+async function renovar(){
+  const s=sessGet();
+  if(s&&s.refresh_token){
+    try{const j=await authCall("/token?grant_type=refresh_token",{refresh_token:s.refresh_token});sessSet(j);return j.access_token}
+    catch(e){if(!e.http)throw e;sessSet(null)}
+  }
+  return novaSessao();
+}
+async function novaSessao(){return null}
+function irLogin(){clearInterval(poller);try{stopWatch()}catch(e){}pararAlerta();sessSet(null);me=null;loginScreen()}
+function loginScreen(){
+  $("app").innerHTML=`<div class="card">
+    <div style="font-weight:700;font-size:17px;margin-bottom:10px">🔐 Entrar no STEVEDRIVE</div>
+    <label class="lbl">E-mail</label><input id="lEmail" type="email" autocomplete="email" inputmode="email" placeholder="voce@email.com">
+    <label class="lbl" style="margin-top:10px">Senha (mínimo 6 caracteres)</label><input id="lSenha" type="password" autocomplete="current-password" placeholder="••••••">
+    <button class="btn" id="lEntrar" style="margin-top:14px">Entrar</button>
+    <button class="btn ghost" id="lCriar" style="margin-top:10px">Criar conta</button>
+  </div>`;
+  const go=async novo=>{
+    const email=$("lEmail").value.trim(),password=$("lSenha").value;
+    if(!/^\S+@\S+\.\S+$/.test(email)){toast("Informe um e-mail válido");return}
+    if(password.length<6){toast("A senha precisa ter 6 ou mais caracteres");return}
+    $("lEntrar").disabled=$("lCriar").disabled=true;
+    try{
+      const j=await authCall(novo?"/signup":"/token?grant_type=password",{email,password});
+      if(!j.access_token){toast("Conta criada. Confirme o e-mail e toque em Entrar.");return}
+      sessSet(j);render();
+    }catch(e){toast(e.http?e.message:"Sem conexão. Tente de novo.")}
+    finally{const a=$("lEntrar"),b=$("lCriar");if(a)a.disabled=b.disabled=false}
+  };
+  $("lEntrar").onclick=()=>go(false);$("lCriar").onclick=()=>go(true);
+}
+async function api(path,opt={}){
+  const tk=await token();
+  if(!tk){irLogin();throw new Error("sem login")}
+  const r=await fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:KEY,Authorization:"Bearer "+tk,"Content-Type":"application/json",Prefer:opt.prefer||"return=representation",...(opt.headers||{})}});
+  if(r.status===401){const s=sessGet();if(s){s.expires_at=0;localStorage.setItem("sb_sess",JSON.stringify(s))}}
+  if(!r.ok)throw new Error("erro "+r.status+": "+(await r.text()).slice(0,160));
+  return (r.headers.get("content-type")||"").includes("json")?r.json():null;
+}
+async function getMe(){const l=await api("motoboys?id=eq."+uid()+"&select=id,nome,preco_km,online,lat,lng,atualizado_em");return l&&l[0]}
 async function updMe(fields){return api("motoboys?id=eq."+uid(),{method:"PATCH",body:JSON.stringify(fields),prefer:"return=minimal"})}
 
 let me=null,map=null,marker=null,watchId=null,sendTm=null,poller=null;
@@ -175,9 +236,8 @@ function onboarding(){
     if(!nome){toast("Informe seu nome");return}
     $("oGo").disabled=true;$("oGo").textContent="Cadastrando…";
     try{
-      const r=await api("motoboys",{method:"POST",body:JSON.stringify({nome,telefone:tel,preco_km:preco})});
-      localStorage.setItem("moto_id",r[0].id);
-      me=r[0];render();
+      await api("motoboys",{method:"POST",prefer:"return=minimal",body:JSON.stringify({id:uid(),nome,telefone:tel,preco_km:preco})});
+      render();
     }catch(e){toast("Erro: "+e.message);$("oGo").disabled=false;$("oGo").textContent="🏍️ Começar a rodar"}
   };
 }
@@ -209,8 +269,10 @@ function painel(){
   <div class="card" id="ganhos"><div class="k">💰 Carregando ganhos…</div></div>
   <div class="sec" style="font-weight:700;margin:6px 2px">📦 Pedidos</div>
   <div id="pedidos"><div class="empty">Fique online para receber pedidos.</div></div>
+  <button class="btn ghost" id="btnSair" style="margin-top:6px">Sair da conta</button>
   `;
   $("swOn").onclick=toggleOnline;
+  $("btnSair").onclick=async()=>{if(me&&me.online){stopWatch();try{await updMe({online:false})}catch(e){}}irLogin()};
   const bA=$("btnAl");if(ac&&ac.state==="running"){bA.textContent="✅ Ativo";bA.disabled=true}else bA.onclick=ativarAlertas;
   $("salvarPreco").onclick=async()=>{
     const v=+$("preco").value||0;await updMe({preco_km:v});me.preco_km=v;toast("Preço atualizado ✓");
@@ -403,14 +465,101 @@ function soDig(t){const d=String(t||"").replace(/\D/g,"");return d.length<=11?"5
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 async function render(){
-  if(!uid()){onboarding();return}
-  try{me=await getMe();if(!me){localStorage.removeItem("moto_id");onboarding();return}}
-  catch(e){$("app").innerHTML='<div class="empty">Sem conexão. Verifique a internet.</div>';return}
+  if(!sessGet()){loginScreen();return}
+  try{me=await getMe();if(!me){onboarding();return}}
+  catch(e){if(!sessGet())return;$("app").innerHTML='<div class="empty">Sem conexão. Verifique a internet.</div>';return}
   if(me.online&&navigator.geolocation)startWatch();
   painel();
 }
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 render();
+</script>
+<script>
+/* visual.js (embutido) */
+(function () {
+  var drive = /DRIVE/i.test(document.title);
+
+  var css = [
+    /* cards, botões e cabeçalho */
+    ".card,.req{box-shadow:0 6px 20px rgba(0,0,0,.08)}",
+    "header{box-shadow:0 2px 14px rgba(0,0,0,.08)}",
+    "header b{font-weight:900;letter-spacing:-.03em}",
+    ".btn{transition:transform .12s,filter .12s,opacity .2s}",
+    ".btn:active{transform:scale(.97);filter:brightness(.95)}",
+    ".btn:not(.ghost):not(.bad):not(.ok){background:linear-gradient(135deg,#ff8a2b,#ff6a00);box-shadow:0 4px 14px rgba(255,106,0,.35)}",
+    ".pill.warn{animation:pl 1.6s ease-in-out infinite}",
+    "@keyframes pl{50%{opacity:.6}}",
+    /* mapa maior e controles */
+    "#map{height:min(46vh,380px)!important;min-height:260px}",
+    "#mapWrap.full #map{height:100%!important}",
+    ".mb{border-radius:14px;backdrop-filter:blur(8px);transition:transform .12s}",
+    ".mb:active{transform:scale(.92)}",
+    "#bZi{top:166px;font-size:22px;font-weight:700}",
+    "#bZo{top:218px;font-size:22px;font-weight:700}",
+    ".leaflet-bottom.leaflet-left{margin-bottom:46px}",
+    ".leaflet-control-scale-line{background:rgba(255,255,255,.85);color:#333;border-color:#666}",
+    /* marcador pulsando */
+    (drive ? ".me" : ".mo") + "{animation:pu 2s ease-out infinite}",
+    "@keyframes pu{0%{box-shadow:0 0 0 0 rgba(255,122,26,.45),0 2px 8px #0009}100%{box-shadow:0 0 0 16px rgba(255,122,26,0),0 2px 8px #0009}}",
+    "@media (prefers-reduced-motion:reduce){.pill.warn,.me,.mo{animation:none}}"
+  ];
+
+  /* modo escuro automático do cliente (segue o celular) */
+  if (!drive) {
+    css.push(
+      "@media (prefers-color-scheme:dark){",
+      ":root{--bg:#14171a;--card:#1e2226;--tx:#f2f2f0;--mut:#9aa3ab;--bd:#31363b}",
+      "input,#sug,.mb{background:#262b30!important;color:#f2f2f0}",
+      "#mInfo{background:rgba(30,34,38,.95)!important;color:#f2f2f0}",
+      ".sg:active{background:#31363b}",
+      "#prop .card{background:#2a2118!important}",
+      ".pill.ok{background:rgba(34,168,97,.18)}",
+      ".pill.warn{background:rgba(255,179,0,.18);color:#ffb300}",
+      ".pill.bad{background:rgba(229,72,77,.18)}",
+      "#toast{color:#14171a}",
+      "}"
+    );
+  }
+
+  var st = document.createElement("style");
+  st.textContent = css.join("\n");
+  document.head.appendChild(st);
+
+  /* botões de zoom + / − */
+  function zoomBtns() {
+    var w = document.getElementById("mapWrap");
+    if (!w || w.querySelector("#bZi")) return;
+    [["bZi", "+", 1, "Aproximar"], ["bZo", "−", -1, "Afastar"]].forEach(function (b) {
+      var e = document.createElement("button");
+      e.className = "mb"; e.id = b[0]; e.textContent = b[1];
+      e.setAttribute("aria-label", b[3]);
+      e.onclick = function () { if (map) map.setZoom(map.getZoom() + b[2]); };
+      w.appendChild(e);
+    });
+  }
+
+  /* estilo de mapa automático (só se a pessoa nunca escolheu um):
+     motoboy: claro de dia (lê melhor no sol), escuro à noite
+     cliente: ruas de dia, escuro à noite */
+  function estiloAuto() {
+    var key = drive ? "moto_lay" : "cli_lay";
+    if (localStorage.getItem(key) !== null) return;
+    var h = new Date().getHours(), noite = h >= 18 || h < 6;
+    var quer = drive ? (noite ? 0 : 1) : (noite ? 2 : 0);
+    try {
+      if (quer !== lay) { setLayer(quer); localStorage.removeItem(key); }
+    } catch (e) {}
+  }
+
+  if (typeof initMap === "function") {
+    var original = initMap;
+    initMap = function () {
+      original.apply(this, arguments);
+      zoomBtns();
+      estiloAuto();
+    };
+  }
+})();
 </script>
 </body>
 </html>
