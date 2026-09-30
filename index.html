@@ -45,10 +45,9 @@ label.lbl{font-size:13px;font-weight:600;color:var(--mut);display:block;margin:2
 .pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px}
 .pill.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
 .pill.warn{background:color-mix(in srgb,var(--acc2) 18%,transparent);color:var(--acc2);animation:pl 1.6s ease-in-out infinite}
-@keyframes pl{50%{opacity:.6}}
-@media (prefers-reduced-motion:reduce){.pill.warn{animation:none}}
+.pill.info{background:color-mix(in srgb,#2f7cf6 18%,transparent);color:#7aaef7}
+.pill.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
 .sec{font-weight:700;font-size:15px;margin:16px 2px 10px;border-left:3px solid var(--acc);padding-left:9px;display:flex;align-items:center;gap:6px}
-/* MAPA */
 #mapWrap{position:relative;margin-top:10px}
 #map{height:280px;border-radius:14px;overflow:hidden;border:1px solid var(--bd);background:#0d0f11}
 #map.dk .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
@@ -58,6 +57,8 @@ label.lbl{font-size:13px;font-weight:600;color:var(--mut);display:block;margin:2
 #mapWrap.full .mb{margin-top:env(safe-area-inset-top,0px)}
 #bFull{top:10px}#bLay{top:62px}#bCen{top:114px;display:none}#bCen.on{display:block;color:var(--acc)}
 #bZi{top:166px;font-size:22px;font-weight:700}#bZo{top:218px;font-size:22px;font-weight:700}
+#bHeat{top:270px}
+#bHeat.on{color:#ff4d00;border-color:#ff4d00}
 #mInfo{position:absolute;left:10px;right:64px;bottom:10px;z-index:1000;background:color-mix(in srgb,var(--card) 94%,transparent);border:1px solid var(--bd);border-radius:12px;padding:9px 12px;font-size:13px;display:none;box-shadow:0 2px 8px #0006}
 #mapWrap.full #mInfo{bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
 #mInfo b{color:var(--acc2);font-size:15px}
@@ -71,14 +72,13 @@ label.lbl{font-size:13px;font-weight:600;color:var(--mut);display:block;margin:2
 .req .val{font-size:28px;font-weight:800;color:var(--acc2)}
 a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-/* paradas */
 .stopList{margin-top:10px;border-top:1px dashed var(--bd);padding-top:8px}
 .stopItem{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:13.5px}
 .stopItem.done{color:var(--mut);text-decoration:line-through}
 .stopItem.cur{font-weight:700}
 .stopItem.cur .sd{background:var(--acc);color:#1a1204;border-color:var(--acc)}
 .sd{width:22px;height:22px;border-radius:50%;background:var(--card2);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
-/* ALERTA fullscreen */
+/* ALERTA */
 #alerta{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:24px;background:#ff7a1a;animation:pisca .9s infinite alternate;overflow-y:auto}
 #alerta.on{display:flex}
 @keyframes pisca{from{background:#ff7a1a}to{background:#ff4d00}}
@@ -88,7 +88,6 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 .alVal{font-size:56px;font-weight:900;margin:6px 0}
 .alSub{font-size:16px;font-weight:600}
 .alDest{font-size:18px;margin:8px 0 10px}
-/* STEP timeline */
 .tl{display:flex;margin:12px 0 4px}
 .tl .st{flex:1;text-align:center;position:relative;font-size:10.5px;color:var(--mut);font-weight:600}
 .tl .st i{display:block;width:12px;height:12px;border-radius:50%;background:var(--bd);margin:0 auto 5px}
@@ -102,6 +101,21 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 .sgrid .sc{background:var(--card2);border-radius:14px;padding:12px}
 .sgrid .sc b{font-size:20px;display:block}
 .sgrid .sc span{font-size:11.5px;color:var(--mut);font-weight:600}
+/* CHAT */
+.chat{margin-top:12px;border:1px solid var(--bd);border-radius:16px;overflow:hidden}
+.chat .ch{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card2);font-weight:700;font-size:13.5px;border-bottom:1px solid var(--bd)}
+.chat .ch .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pl 1.6s infinite}
+#chatBox{max-height:170px;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:78%;padding:8px 11px;border-radius:14px;font-size:14px;line-height:1.35}
+.msg.eu{align-self:flex-end;background:var(--acc);color:#1a1204;border-bottom-right-radius:4px;font-weight:600}
+.msg.ele{align-self:flex-start;background:var(--card2);border:1px solid var(--bd);border-bottom-left-radius:4px}
+.mh{display:block;font-size:10px;opacity:.7;margin-top:2px;text-align:right}
+.chatInRow{display:flex;gap:8px;padding:8px;background:var(--card);border-top:1px solid var(--bd)}
+.chatInRow input{min-height:44px;border-radius:22px}
+.chatInRow button{width:44px;height:44px;min-height:44px;border-radius:50%;padding:0;font-size:18px;flex:none}
+/* avaliações recebidas */
+.avl{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px}
+.avl:last-child{border:0}
 #tabbar{position:fixed;bottom:0;left:0;right:0;z-index:900;display:none;background:color-mix(in srgb,var(--card) 96%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
 #tabbar button{flex:1;background:none;border:0;padding:9px 4px 7px;color:var(--mut);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
 #tabbar button.on{color:var(--acc)}
@@ -110,7 +124,9 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 #toast.show{transform:translate(-50%,0);opacity:1}
 @keyframes pu{0%{box-shadow:0 0 0 0 rgba(255,122,26,.45),0 2px 8px rgba(0,0,0,.6)}100%{box-shadow:0 0 0 16px rgba(255,122,26,0),0 2px 8px rgba(0,0,0,.6)}}
 .me{animation:pu 2s ease-out infinite}
-@media (prefers-reduced-motion:reduce){.me{animation:none}}
+.pill.warn{animation:pl 1.6s ease-in-out infinite}
+@keyframes pl{50%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.me,.pill.warn,.chat .ch .dot{animation:none}}
 .leaflet-bottom.leaflet-left{margin-bottom:46px}
 </style>
 </head>
@@ -139,6 +155,7 @@ const uid=()=>(sessGet()||{}).user_id;
 const brl=n=>(+n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const curta=(s,n=36)=>{s=String(s||"");return s.length>n?s.slice(0,n)+"…":s};
+const fmtHora=d=>{d=new Date(d);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
 const LS=k=>localStorage.getItem(k);
 let tToast=null;
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tToast);tToast=setTimeout(()=>t.classList.remove("show"),2600)}
@@ -193,10 +210,9 @@ async function getMe(){
 async function updMe(fields){return api("motoboys?id=eq."+uid(),{method:"PATCH",body:JSON.stringify(fields),prefer:"return=minimal"})}
 const normParadas=c=>{if(!c||!c.paradas)return[];if(Array.isArray(c.paradas))return c.paradas;try{return JSON.parse(c.paradas)}catch(e){return[]}};
 
-/* ====== PARADAS: helpers ====== */
-let avancoLocal={}; // fallback se a coluna parada_atual não existir
+/* ====== PARADAS helpers ====== */
+let avancoLocal={};
 function paradaAtual(c){return c.parada_atual!=null?+c.parada_atual:(avancoLocal[c.id]||0)}
-/* waypoints restantes da corrida */
 function waypointsOf(c){
   const paradas=normParadas(c),at=paradaAtual(c);
   if(c.status==="aceita"){
@@ -226,12 +242,23 @@ async function avancar(id,at){
     catch(x){toast("Erro: "+x.message);return}
     avancoLocal[id]=at+1;
   }
-  rKey=""; // força redesenho da rota
+  rKey="";
   toast("Parada concluída ✓ Avançando…");
   refreshPedidos();
 }
+function angDiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d}
+function foraDirecao(c){
+  if(!LS("dir_lat")||me.lat==null)return false;
+  const wps=waypointsOf(c);
+  if(!wps.length||c.destino_lat==null)return false;
+  const dLat=+LS("dir_lat"),dLng=+LS("dir_lng");
+  const r=x=>x*Math.PI/180;
+  const ber=(a,b)=>{const dl=r(b[1]-a[1]),y=Math.sin(dl)*Math.cos(r(b[0])),x=Math.cos(r(a[0]))*Math.sin(r(b[0]))-Math.sin(r(a[0]))*Math.cos(r(b[0]))*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360};
+  const alvo=wps[wps.length-1];
+  return angDiff(ber([me.lat,me.lng],[alvo[0],alvo[1]]),ber([me.lat,me.lng],[dLat,dLng]))>120;
+}
 
-/* ====== TEMPO ONLINE / ACEITAÇÃO ====== */
+/* ====== ONLINE / ACEITAÇÃO ====== */
 function hojeKey(){return new Date().toISOString().slice(0,10)}
 function onlineOn(){if(!LS("on_start"))localStorage.setItem("on_start",String(Date.now()))}
 function onlineOff(){
@@ -249,7 +276,7 @@ function tempoOnlineHoje(){
 function accStat(ok){const t=(+LS("acc_t")||0)+1,y=(+LS("acc_y")||0)+(ok?1:0);localStorage.setItem("acc_t",t);localStorage.setItem("acc_y",y)}
 function accRate(){const t=+LS("acc_t")||0;return t?Math.round(100*(+LS("acc_y")||0)/t)+"%":"—"}
 
-/* ====== LOGIN / CADASTRO ====== */
+/* ====== LOGIN ====== */
 function loginScreen(){
   $("tabbar").style.display="none";
   $("app").innerHTML=`<div class="card">
@@ -356,6 +383,15 @@ function apitar(){
 async function travarTela(){try{if(navigator.wakeLock&&!wl){wl=await navigator.wakeLock.request("screen");wl.addEventListener("release",()=>{wl=null})}}catch(e){}}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(me&&me.online)travarTela();refreshPedidos()}});
 function pararAlerta(){clearInterval(alCd);clearInterval(alTm);alTm=null;alId=null;const a=$("alerta");if(a)a.classList.remove("on");if(navigator.vibrate)navigator.vibrate(0)}
+function agFmt(c){
+  if(!c.agendada_para)return null;
+  const d=new Date(c.agendada_para);
+  return d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+}
+function agDentroDoHorario(c,min=20){
+  if(!c.agendada_para)return true;
+  return new Date(c.agendada_para).getTime()-Date.now()<=min*60000;
+}
 async function infoCorrida(c){
   const wps=waypointsOf(c);
   if(!wps.length)return"";
@@ -368,9 +404,15 @@ async function infoCorrida(c){
       if(rt)det=`🛣️ ${(rt.distance/1000).toFixed(1)} km até ${c.status==="aceita"?"o cliente":"o próximo ponto"} · 🕐 ~${Math.max(1,Math.round(rt.duration/60))} min`;
     }catch(e){}
   }
-  const porKm=brl((+c.valor)/(+c.distancia_km||1));
   const paradas=normParadas(c);
-  return det+(det?" · ":"")+`💵 ${porKm}/km${paradas.length?` · 🧭 ${paradas.length+1} pontos`:""}`;
+  let extra=`💵 ${brl((+c.valor)/(+c.distancia_km||1))}/km`;
+  if(paradas.length)extra+=` · 🧭 ${paradas.length+1} pontos`;
+  if(c.troco_para)extra+=` · 💵 troco de ${brl(c.troco_para-c.valor)}`;
+  if(c.passageiro_nome)extra+=` · 🎁 ${curta(c.passageiro_nome,14)}`;
+  const agf=agFmt(c);
+  if(agf)extra+=` · 🕐 saída ${agf}`;
+  if(foraDirecao(c))extra+=" · ⚠️ FORA DA SUA DIREÇÃO";
+  return det+(det?" · ":"")+extra;
 }
 async function mostrarAlerta(c){
   alId=c.id;
@@ -449,8 +491,10 @@ function painel(){
       <button class="mb" id="bCen" aria-label="Centralizar">🎯</button>
       <button class="mb" id="bZi" aria-label="Aproximar">+</button>
       <button class="mb" id="bZo" aria-label="Afastar">−</button>
+      <button class="mb" id="bHeat" aria-label="Mapa de demanda">🔥</button>
       <div id="mInfo"></div>
     </div>
+    <div class="k" style="margin-top:6px">🔥 = zonas com mais corridas nas últimas 48h</div>
   </div>
   <div class="card">
     <div class="ct">💵 Seu preço</div>
@@ -464,6 +508,7 @@ function painel(){
   <div class="sec">📦 Pedidos</div>
   <div id="pedidos"><div class="empty">Fique online para receber pedidos.</div></div>`;
   $("swOn").onclick=toggleOnline;
+  $("bHeat").onclick=toggleHeat;
   const bA=$("btnAl");if(ac&&ac.state==="running"){bA.textContent="✅ Ativo";bA.disabled=true}else bA.onclick=ativarAlertas;
   $("salvarPreco").onclick=async()=>{
     const v=+$("preco").value||0;await updMe({preco_km:v});me.preco_km=v;toast("Preço atualizado ✓");
@@ -483,16 +528,69 @@ async function resumoDia(){
   }catch(e){el.innerHTML='<div class="k">💰 Resumo indisponível agora</div>'}
 }
 
+/* ====== HEATMAP DE DEMANDA ====== */
+let heatLayer=null,heatData=null,heatCache=0;
+async function toggleHeat(){
+  const btn=$("bHeat");
+  if(heatLayer){map.removeLayer(heatLayer);heatLayer=null;btn.classList.remove("on");toast("Mapa de demanda desligado");return}
+  btn.classList.add("on");
+  if(heatData&&Date.now()-heatCache<600000){renderHeat();return}
+  try{
+    const d=new Date(Date.now()-48*3600e3).toISOString();
+    const l=await api("corridas?select=destino_lat,destino_lng&criado_em=gte."+encodeURIComponent(d)+"&limit=300");
+    const cells={};
+    (l||[]).forEach(c=>{
+      if(c.destino_lat==null)return;
+      const k=(+c.destino_lat).toFixed(2)+","+(+c.destino_lng).toFixed(2);
+      cells[k]=cells[k]||{lat:+c.destino_lat,lng:+c.destino_lng,n:0};
+      cells[k].n++;
+    });
+    heatData=Object.values(cells);
+    heatCache=Date.now();
+    renderHeat();
+  }catch(e){btn.classList.remove("on");toast("Demanda indisponível (rode o SQL de atualização)")}
+}
+function renderHeat(){
+  if(!map||!heatData)return;
+  if(heatLayer)map.removeLayer(heatLayer);
+  heatLayer=L.layerGroup(heatData.map(c=>L.circle([c.lat,c.lng],{radius:180+c.n*130,color:"#ff4d00",weight:1,fillColor:"#ff6a00",fillOpacity:.16}))).addTo(map);
+  toast("🔥 Zonas com mais corridas (48h)");
+}
+
+/* ====== CHAT ====== */
+let chatOk=null,chatLastId=0;
+async function chatDisp(){if(chatOk!==null)return chatOk;try{await api("mensagens?select=id&limit=1");chatOk=true}catch(e){chatOk=false}return chatOk}
+async function carregarChat(c,forcar){
+  const box=$("chatBox");if(!box)return;
+  if(!(await chatDisp())){const w=$("chatWrap");if(w)w.style.display="none";return}
+  try{
+    const l=await api("mensagens?corrida_id=eq."+c.id+"&order=criado_em.desc&limit=50");
+    const novo=l.length&&l[0].id!==chatLastId;
+    chatLastId=l.length?l[0].id:0;
+    if(!l.length){box.innerHTML='<div class="k" style="text-align:center;padding:4px">Converse com o cliente aqui 👇</div>';return}
+    box.innerHTML=l.slice().reverse().map(m=>`<div class="msg ${m.autor==="motoboy"?"eu":"ele"}"><div>${esc(m.texto)}</div><span class="mh">${fmtHora(m.criado_em)}${m.autor==="motoboy"?" ✓✓":""}</span></div>`).join("");
+    if(novo||forcar)box.scrollTop=box.scrollHeight;
+  }catch(e){}
+}
+async function enviarMsg(c){
+  const inp=$("chatIn");if(!inp)return;
+  const t=inp.value.trim();if(!t)return;
+  inp.value="";
+  try{await api("mensagens",{method:"POST",prefer:"return=minimal",body:JSON.stringify({corrida_id:c.id,autor:"motoboy",texto:t.slice(0,300)})});carregarChat(c,true)}
+  catch(e){toast("Não foi possível enviar")}
+}
+
 async function refreshPedidos(){
   let lista=[];
   try{lista=await api("corridas?motoboy_id=eq."+uid()+"&status=in.(pendente,proposta,aceita,a_caminho)&order=criado_em.desc")}catch(e){return}
   const pend=lista.filter(c=>c.status==="pendente");
-  pend.forEach(c=>{const k=c.id+":"+c.valor+":"+(c.rodada_cli||0);if(!seen.has(k)){seen.add(k);notificar(c)}});
+  const alertaveis=pend.filter(agDentroDoHorario);
+  alertaveis.forEach(c=>{const k=c.id+":"+c.valor+":"+(c.rodada_cli||0);if(!seen.has(k)){seen.add(k);notificar(c)}});
   if(alId&&!pend.some(c=>String(c.id)===String(alId)))pararAlerta();
-  if(!alId&&pend.length)mostrarAlerta(pend[0]);
+  if(!alId&&alertaveis.length)mostrarAlerta(alertaveis[0]);
   syncMapa(lista);
   const box=$("pedidos");if(!box)return;
-  if(!lista.length){box.innerHTML='<div class="empty">Nenhum pedido no momento.<br>💡 Fique online e perto de áreas movimentadas.</div>';return}
+  if(!lista.length){box.innerHTML='<div class="empty">Nenhum pedido no momento.<br>💡 Use o 🔥 no mapa para ver onde há demanda.</div>';return}
   box.innerHTML=lista.map(c=>{
     const wa=c.cliente_tel?`<a class="wa" target="_blank" href="https://wa.me/${soDig(c.cliente_tel)}">💬 ${esc(c.cliente_nome)}</a>`:esc(c.cliente_nome);
     const paradas=normParadas(c),at=paradaAtual(c);
@@ -501,19 +599,26 @@ async function refreshPedidos(){
       ?(c.origem_lat!=null?{lat:c.origem_lat,lng:c.origem_lng,end:c.origem_end||"Cliente"}:{lat:c.destino_lat,lng:c.destino_lng,end:c.destino_end})
       :(restam>0?paradas[at]:{lat:c.destino_lat,lng:c.destino_lng,end:c.destino_end});
     const nav=`https://www.google.com/maps/dir/?api=1&destination=${proxWP.lat},${proxWP.lng}`;
+    const agf=agFmt(c);
+    const futura=c.agendada_para&&new Date(c.agendada_para).getTime()>Date.now()+60000;
+    const fora=foraDirecao(c);
     const stopsList=paradas.length?`<div class="stopList"><div class="k" style="margin-bottom:4px;font-weight:700">🧭 ROTA ${c.status==="aceita"?"· BUSCAR CLIENTE":""}</div>
       ${c.status==="aceita"&&c.origem_end?`<div class="stopItem cur"><span class="sd">📍</span>${esc(curta(c.origem_end,40))}</div>`:""}
       ${paradas.map((p,i)=>`<div class="stopItem ${i<at?"done":i===at&&c.status==="a_caminho"?"cur":""}"><span class="sd">${i<at?"✓":i+1}</span>${esc(curta(p.end,40))}</div>`).join("")}
       <div class="stopItem ${c.status==="a_caminho"&&at>=paradas.length?"cur":""}"><span class="sd">🏁</span>${esc(curta(c.destino_end||"Destino",40))}</div></div>`:"";
+    const chatBlock=["aceita","a_caminho"].includes(c.status)?`
+      <div class="chat" id="chatWrap"><div class="ch"><span class="dot"></span>💬 Chat com ${esc(c.passageiro_nome||c.cliente_nome)}</div><div id="chatBox"></div>
+      <div class="chatInRow"><input id="chatIn" placeholder="Mensagem…" maxlength="300" enterkeyhint="send"><button class="btn" id="chatGo">➤</button></div></div>`:"";
     let acoes="";
     if(c.status==="pendente"){
-      acoes=`<div class="grid2"><button class="btn ok" data-ac="${c.id}:aceita:1">✅ Aceitar</button><button class="btn bad" data-ac="${c.id}:recusada:0">✖ Recusar</button></div>`;
+      acoes=`<div class="grid2"><button class="btn ok" data-ac="${c.id}:aceita:1">✅ ${futura?"Aceitar agendada":"Aceitar"}</button><button class="btn bad" data-ac="${c.id}:recusada:0">✖ Recusar</button></div>`;
     }else if(c.status==="aceita"){
+      const telAlvo=c.passageiro_tel||c.cliente_tel,nomeAlvo=c.passageiro_nome||c.cliente_nome;
       acoes=`${stopsList}
         <div class="tl">${["Aceito","A bordo","Concluído"].map((s,i)=>`<div class="st ${i<1?"on":""}"><i></i>${s}</div>`).join("")}</div>
         <a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" href="${nav}">🧭 Navegar: ${esc(curta(proxWP.end,26))}</a>
-        <button class="btn" data-ac="${c.id}:a_caminho:" style="margin-top:10px">🏍️ Cliente a bordo — iniciar corrida</button>
-        ${c.cliente_tel?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="tel:${soDig(c.cliente_tel)}">📞 Ligar para ${esc(c.cliente_nome)}</a>`:""}`;
+        <button class="btn" data-ac="${c.id}:a_caminho:" style="margin-top:10px">🏍️ ${c.passageiro_nome?"Passageiro a bordo":"Cliente a bordo"} — iniciar corrida</button>
+        ${telAlvo?`<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="tel:${soDig(telAlvo)}">📞 Ligar para ${esc(nomeAlvo)}</a>`:""}`;
     }else if(c.status==="a_caminho"){
       acoes=`${stopsList}
         <div class="tl">${["Aceito","A bordo","Concluído"].map((s,i)=>`<div class="st ${i<2?"on":""}"><i></i>${s}</div>`).join("")}</div>
@@ -523,12 +628,26 @@ async function refreshPedidos(){
     }
     return `<div class="req">
       <div class="row"><span class="pill ${c.status==='pendente'?'warn':'ok'}">${lblStatus(c.status)}</span><span class="val">${brl(c.valor)}</span></div>
+      ${agf?`<div class="pill info" style="margin-top:8px">🕐 Saída agendada: ${agf}</div>`:""}
+      ${fora?`<div class="pill bad" style="margin-top:8px">⚠️ Fora da sua direção definida</div>`:""}
+      ${c.troco_para?`<div class="k" style="margin-top:8px">💵 Cliente paga com ${brl(c.troco_para)} — leve troco de <b style="color:var(--tx)">${brl(c.troco_para-c.valor)}</b></div>`:""}
+      ${c.passageiro_nome?`<div class="k" style="margin-top:8px">🎁 Passageiro: <b style="color:var(--tx)">${esc(c.passageiro_nome)}</b>${c.passageiro_tel?" · "+esc(c.passageiro_tel):""}</div>`:""}
       ${c.status==="proposta"?`<div class="k" style="margin-top:8px">Sua proposta: <b>${brl(c.contra_valor)}</b> · aguardando o cliente</div>`:""}
       <div class="k" style="margin-top:8px">📍 Destino final</div><div>${esc(c.destino_end||"—")}</div>
       <div class="row" style="margin-top:6px"><span class="k">${(+c.distancia_km).toFixed(1)} km total · ${brl((+c.valor)/(+c.distancia_km||1))}/km${paradas.length?` · ${paradas.length} parada${paradas.length>1?"s":""}`:""}</span>${wa}</div>
-      ${acoes}
+      ${acoes}${chatBlock}
     </div>`;
   }).join("");
+  const ativa=lista.find(c=>["aceita","a_caminho"].includes(c.status));
+  if(ativa){
+    const cg=$("chatGo");
+    if(cg){
+      carregarChat(ativa);
+      cg.onclick=()=>enviarMsg(ativa);
+      const ci=$("chatIn");
+      if(ci)ci.onkeydown=e=>{if(e.key==="Enter")enviarMsg(ativa)};
+    }
+  }
   box.querySelectorAll("[data-ac]").forEach(b=>b.onclick=async()=>{
     const[id,st,ct]=b.dataset.ac.split(":");
     b.disabled=true;
@@ -574,7 +693,7 @@ function setLayer(i){
 }
 function initMap(){
   if(map){map.remove();map=null}
-  rLine=rGlow=dMark=accC=null;pMarks=[];rKey="";rFrom=null;follow=true;
+  rLine=rGlow=dMark=accC=null;pMarks=[];rKey="";rFrom=null;follow=true;heatLayer=null;
   const p=[me.lat||-27.816,me.lng||-50.326];
   map=L.map("map",{zoomControl:false,zoomSnap:.5,minZoom:3,preferCanvas:true}).setView(p,15);
   map.attributionControl.setPrefix(false);
@@ -616,7 +735,7 @@ async function rota(c){
   if(!mudou&&rFrom&&dist(me.lat,me.lng,rFrom[0],rFrom[1])<100)return;
   rBusy=true;
   const paradas=normParadas(c),at=paradaAtual(c);
-  const alvo=wps[0]; // próximo ponto
+  const alvo=wps[0];
   try{
     const coords=`${me.lng},${me.lat};${wps.map(w=>w[1]+","+w[0]).join(";")}`;
     const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),9000);
@@ -661,8 +780,8 @@ async function rota(c){
 function syncMapa(lista){
   if(!map)return;
   pMarks.forEach(m=>map.removeLayer(m));pMarks=[];
-  lista.filter(c=>c.status==="pendente"&&c.destino_lat!=null).forEach(c=>{
-    pMarks.push(L.marker([+c.destino_lat,+c.destino_lng],{icon:L.divIcon({html:'<div class="pin">📍</div>',className:"",iconSize:[30,30],iconAnchor:[15,28]})}).bindTooltip(brl(c.valor),{permanent:true,direction:"top",offset:[0,-26]}).addTo(map));
+  lista.filter(c=>c.status==="pendente"&&c.destino_lat!=null&&agDentroDoHorario(c,60)).forEach(c=>{
+    pMarks.push(L.marker([+c.destino_lat,+c.destino_lng],{icon:L.divIcon({html:c.agendada_para?'<div class="pin">🕐</div>':'<div class="pin">📍</div>',className:"",iconSize:[30,30],iconAnchor:[15,28]})}).bindTooltip(brl(c.valor)+(c.agendada_para?" · "+fmtHora(c.agendada_para):""),{permanent:true,direction:"top",offset:[0,-26]}).addTo(map));
   });
   const at=lista.find(c=>c.status==="a_caminho")||lista.find(c=>c.status==="aceita");
   if(at)rota(at);else if(rKey||rLine||rGlow)limparRota();
@@ -700,8 +819,10 @@ async function tabGanhos(){
     const S=(a,x)=>a.reduce((t,c)=>t+(+c[x]||0),0);
     const hoje=l.filter(c=>new Date(c.atualizado_em)>=d);
     const semana=l.filter(c=>new Date(c.atualizado_em)>=w);
-    let nota="",ncorr=0;
-    try{const r=await api("corridas?motoboy_id=eq."+uid()+"&avaliacao=not.is.null&select=avaliacao");ncorr=r.length;if(r.length)nota=(r.reduce((t,c)=>t+c.avaliacao,0)/r.length).toFixed(1)}catch(e){}
+    let nota="",ncorr=0,coments=[];
+    try{const r=await api("corridas?motoboy_id=eq."+uid()+"&avaliacao=not.is.null&select=avaliacao,comentario,atualizado_em&order=atualizado_em.desc&limit=30");ncorr=r.length;if(r.length)nota=(r.reduce((t,c)=>t+c.avaliacao,0)/r.length).toFixed(1);coments=r.filter(c=>c.comentario).slice(0,5)}catch(e){
+      try{const r=await api("corridas?motoboy_id=eq."+uid()+"&avaliacao=not.is.null&select=avaliacao&limit=30");ncorr=r.length;if(r.length)nota=(r.reduce((t,c)=>t+c.avaliacao,0)/r.length).toFixed(1)}catch(x){}
+    }
     const meta=+LS("meta_dia")||150;
     const hojeVl=S(hoje,"valor");
     const dias=[...Array(7)].map((_,i)=>{const a=new Date(w);a.setDate(a.getDate()+i);const b=new Date(a);b.setDate(b.getDate()+1);return S(l.filter(c=>{const t=new Date(c.atualizado_em);return t>=a&&t<b}),"valor")});
@@ -740,8 +861,9 @@ async function tabGanhos(){
         <div class="sc"><span>TAXA DE ACEITAÇÃO</span><b>${accRate()}</b></div>
         <div class="sc"><span>CORRIDAS HOJE</span><b>${hoje.length}</b></div>
       </div>
+      ${coments.length?`<div style="margin-top:10px;border-top:1px dashed var(--bd);padding-top:6px"><div class="k" style="font-weight:700;margin-bottom:4px">💬 Últimas avaliações</div>${coments.map(c=>`<div class="avl"><span style="flex:none">${"⭐".repeat(c.avaliacao)}</span><span class="k">${esc(c.comentario)}</span></div>`).join("")}</div>`:""}
     </div>
-    <div class="k" style="text-align:center">💡 Dica: corridas com paradas pagam sobre o km total da rota.</div>`;
+    <div class="k" style="text-align:center">💡 Use o 🔥 no mapa para encontrar zonas de alta demanda.</div>`;
     $("metaB").onclick=()=>{const v=+$("metaV").value||150;localStorage.setItem("meta_dia",v);toast("Meta definida: "+brl(v));tabGanhos()};
   }catch(e){$("app").innerHTML='<div class="empty">Sem conexão. Tente de novo.</div>'}
 }
@@ -749,6 +871,7 @@ function faltam(v,m){const f=m-v;return "Faltam "+brl(f)+" ("+Math.round(v/m*100
 
 /* ====== ABA PERFIL ====== */
 function tabPerfil(){
+  const temDir=!!LS("dir_lat");
   $("app").innerHTML=`
   <div class="card" style="text-align:center;padding:22px 16px">
     <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#ff8a2b,#ff6a00);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#1a1204">${esc((me.nome||"?").trim().split(/\s+/).map(p=>p[0]).slice(0,2).join("").toUpperCase())}</div>
@@ -768,6 +891,11 @@ function tabPerfil(){
     <div class="row" style="gap:8px"><input id="pPreco" type="number" step="0.10" min="0.5" value="${me.preco_km}"><button class="btn ghost sm" id="pSalvar" style="min-height:48px">Salvar tudo</button></div>
   </div>
   <div class="card">
+    <b>🧭 Direção definida</b>
+    <div class="k" style="margin:4px 0 10px">Você recebe um aviso ⚠️ quando uma corrida sair da direção para onde está indo (ex.: caminho de casa).</div>
+    ${temDir?`<div class="pill ok">🏠 Direção ativa (${(+LS("dir_lat")).toFixed(4)}, ${(+LS("dir_lng")).toFixed(4)})</div><button class="btn ghost" id="dirOff" style="margin-top:10px">Remover direção</button>`:`<button class="btn ghost" id="dirOn">Usar minha localização atual como direção</button>`}
+  </div>
+  <div class="card">
     <b>📈 Números</b>
     <div class="sgrid" style="margin-top:10px">
       <div class="sc"><span>TEMPO ONLINE HOJE</span><b>${tempoOnlineHoje()}</b></div>
@@ -782,6 +910,14 @@ function tabPerfil(){
     me.nome=fields.nome;me.preco_km=fields.preco_km;me.telefone=fields.telefone;
     toast("Perfil salvo ✓");
   };
+  const dOn=$("dirOn");
+  if(dOn)dOn.onclick=()=>{
+    if(me.lat==null){toast("Aguarde a localização…");return}
+    localStorage.setItem("dir_lat",me.lat);localStorage.setItem("dir_lng",me.lng);
+    toast("🏠 Direção definida");tabPerfil();
+  };
+  const dOff=$("dirOff");
+  if(dOff)dOff.onclick=()=>{localStorage.removeItem("dir_lat");localStorage.removeItem("dir_lng");toast("Direção removida");tabPerfil()};
   $("btnSair").onclick=async()=>{if(me&&me.online){stopWatch();onlineOff();try{await updMe({online:false})}catch(e){}}irLogin()};
 }
 
