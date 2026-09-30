@@ -77,6 +77,9 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 <div id="alerta"><div class="alBox"><div class="alTit">🏍️ Nova corrida!</div><div class="alVal" id="alVal"></div><div class="alSub" id="alKm"></div><div class="alDest" id="alDest"></div><div style="height:8px;background:#1a120433;border-radius:6px;margin:0 0 18px;overflow:hidden"><div id="alBarI" style="height:100%;width:100%;background:#1a1204;transition:width 1s linear"></div></div><button class="btn ok" id="alAc">✅ Aceitar</button><button class="btn ghost" id="alRe" style="margin-top:10px;color:#1a1204;border-color:#1a1204">✖ Recusar</button></div></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <script>
 "use strict";
@@ -219,8 +222,9 @@ async function carregarGanhos(){
 
 /* ====== MAPA AVANÇADO ====== */
 const CAMADAS=[
-  {n:"Escuro",u:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",dk:1,z:19},
-  {n:"Claro",u:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",z:19},
+  {n:"Escuro",gl:"https://tiles.openfreemap.org/styles/dark",dk:1,u:"https://tile.openstreetmap.org/{z}/{x}/{y}.png"},
+  {n:"Ruas",gl:"https://tiles.openfreemap.org/styles/liberty"},
+  {n:"Claro",gl:"https://tiles.openfreemap.org/styles/positron"},
   {n:"Satélite",u:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",z:18}
 ];
 const MAN={left:"Vire à esquerda",right:"Vire à direita","slight left":"Curva leve à esquerda","slight right":"Curva leve à direita","sharp left":"Curva fechada à esquerda","sharp right":"Curva fechada à direita",straight:"Siga em frente",uturn:"Faça o retorno"};
@@ -230,17 +234,20 @@ const dist=(a,b,c,d)=>{const R=6371e3,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r,h=Math.s
 const fmtD=m=>m<1000?Math.round(m/10)*10+" m":(m/1000).toFixed(1)+" km";
 function setLayer(i){
   lay=(i+CAMADAS.length)%CAMADAS.length;localStorage.setItem("moto_lay",lay);
-  const c=CAMADAS[lay];
+  const c=CAMADAS[lay];let gl=false;
   if(tile)map.removeLayer(tile);
-  tile=L.tileLayer(c.u,{maxZoom:c.z,maxNativeZoom:c.z,attribution:"© OpenStreetMap / Esri"}).addTo(map);
-  tile.bringToBack();
-  $("map").classList.toggle("dk",!!c.dk);
+  tile=null;
+  if(c.gl&&L.maplibreGL){try{tile=L.maplibreGL({style:c.gl,attribution:"© OpenFreeMap © OpenMapTiles Dados © OpenStreetMap"}).addTo(map);gl=true}catch(e){tile=null}}
+  if(!tile)tile=L.tileLayer(c.u||"https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:c.z||19,maxNativeZoom:c.z||19,attribution:"© OpenStreetMap / Esri"}).addTo(map);
+  if(tile.bringToBack)tile.bringToBack();
+  $("map").classList.toggle("dk",!gl&&!!c.dk);
 }
 function initMap(){
   if(map){map.remove();map=null}
   rLine=rGlow=dMark=accC=null;pMarks=[];rKey="";rFrom=null;follow=true;
   const p=[me.lat||-27.816,me.lng||-50.326];
-  map=L.map("map",{zoomControl:false,attributionControl:false,zoomSnap:.5,preferCanvas:true}).setView(p,15);
+  map=L.map("map",{zoomControl:false,zoomSnap:.5,minZoom:3,preferCanvas:true}).setView(p,15);
+  map.attributionControl.setPrefix(false);
   setLayer(lay);
   L.control.scale({imperial:false,position:"bottomleft"}).addTo(map);
   accC=L.circle(p,{radius:0,color:"#ff7a1a",weight:1,fillOpacity:.1,interactive:false}).addTo(map);
