@@ -67,7 +67,7 @@ a.wa{color:var(--ok);text-decoration:none;font-weight:600}
 .alTit{font-size:30px;font-weight:800}
 .alVal{font-size:56px;font-weight:900;margin:6px 0}
 .alSub{font-size:16px;font-weight:600}
-.alDest{font-size:18px;margin:8px 0 22px}
+.alDest{margin:8px 0 22px}.alPt{background:#1a120414;border-radius:14px;padding:10px 14px;margin:8px 0;text-align:left}.alPt small{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;opacity:.75}.alPt b{display:block;font-size:19px;line-height:1.25;margin-top:2px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:4000;pointer-events:none;max-width:88vw;text-align:center}
 #toast.show{transform:translate(-50%,0);opacity:1}
 </style>
@@ -233,7 +233,8 @@ function mostrarAlerta(c){
   alId=c.id;
   $("alTit").textContent=tp(c).tit;
   $("alVal").textContent=brl(c.valor);
-  $("alDest").style.whiteSpace="pre-line";$("alDest").textContent=(c.origem_end?"🟢 "+(c.tipo==="entrega"?"Coleta":"Embarque")+": "+c.origem_end+"\n":"")+"🏁 Destino: "+(c.destino_end||"—");
+  const ent=c.tipo==="entrega";
+  $("alDest").innerHTML=(c.origem_end?`<div class="alPt"><small>🟢 ${ent?"COLETAR O ITEM EM":"BUSCAR O PASSAGEIRO EM"}</small><b>${esc(c.origem_end)}</b></div>`:"")+`<div class="alPt"><small>🏁 ${ent?"ENTREGAR EM":"LEVAR ATÉ"}</small><b>${esc(c.destino_end||"—")}</b></div>`;
   $("alKm").textContent=(+c.distancia_km).toFixed(1)+" km"+(c.cliente_nome?" · "+c.cliente_nome:"")+(Math.abs(+c.valor-(+c.distancia_km)*(+me.preco_km||0))>0.01?" · 💬 valor sugerido pelo cliente":"");
   $("alerta").classList.add("on");
   $("alAc").onclick=()=>responder(c.id,"aceita");
