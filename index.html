@@ -311,6 +311,15 @@ function painel(){
       <button class="btn ghost" id="salvarPreco" style="width:auto;white-space:nowrap">Salvar</button>
     </div>
   </div>
+  <div class="card">
+    <div style="font-weight:700">🛣️ Minha rota</div>
+    <div class="k" style="margin-bottom:8px">Vai passar por um trajeto? Publique e os clientes veem no app.</div>
+    <input id="rOr" maxlength="60" placeholder="Saindo de (bairro ou rua)">
+    <input id="rDe" maxlength="60" placeholder="Indo para (bairro ou rua)" style="margin-top:8px">
+    <input id="rSa" maxlength="40" placeholder="Horário (ex.: hoje 18h)" style="margin-top:8px">
+    <div class="row" style="gap:10px;margin-top:10px"><button class="btn" id="rPub">📢 Publicar rota</button><button class="btn ghost" id="rDel" style="width:auto;white-space:nowrap">Remover</button></div>
+    <div class="k" id="rSt" style="margin-top:8px"></div>
+  </div>
   <div class="card" id="ganhos"><div class="k">💰 Carregando ganhos…</div></div>
   <div class="sec" style="font-weight:700;margin:6px 2px">📦 Pedidos</div>
   <div id="pedidos"><div class="empty">Fique online para receber pedidos.</div></div>
@@ -322,9 +331,30 @@ function painel(){
   $("salvarPreco").onclick=async()=>{
     const v=+$("preco").value||0;await updMe({preco_km:v});me.preco_km=v;toast("Preço atualizado ✓");
   };
+  $("rPub").onclick=publicarRota;$("rDel").onclick=removerRota;carregarRota();
   initMap();
   refreshPedidos();carregarGanhos();
   clearInterval(poller);poller=setInterval(refreshPedidos,4000);
+}
+
+async function carregarRota(){
+  try{
+    const r=((await api("rotas?motoboy_id=eq."+uid()+"&select=*"))||[])[0];
+    if(r){$("rOr").value=r.origem||"";$("rDe").value=r.destino||"";$("rSa").value=r.saida||""}
+    $("rSt").textContent=r&&r.ativa?"🟢 Rota publicada: os clientes estão vendo.":"Nenhuma rota publicada.";
+  }catch(e){if($("rSt"))$("rSt").textContent="Rotas indisponíveis: falta criar a tabela no Supabase."}
+}
+async function publicarRota(){
+  const o=$("rOr").value.trim(),d=$("rDe").value.trim(),h=$("rSa").value.trim();
+  if(!o||!d){toast("Informe de onde sai e para onde vai");return}
+  try{
+    await api("rotas?on_conflict=motoboy_id",{method:"POST",prefer:"resolution=merge-duplicates,return=minimal",body:JSON.stringify({motoboy_id:uid(),origem:o,destino:d,saida:h,ativa:true,atualizado_em:new Date().toISOString()})});
+    toast("Rota publicada ✓");carregarRota();
+  }catch(e){toast("Erro: "+e.message)}
+}
+async function removerRota(){
+  try{await api("rotas?motoboy_id=eq."+uid(),{method:"DELETE",prefer:"return=minimal"});["rOr","rDe","rSa"].forEach(i=>$(i).value="");toast("Rota removida");carregarRota()}
+  catch(e){toast("Erro: "+e.message)}
 }
 
 async function carregarGanhos(){
