@@ -442,17 +442,17 @@ async function rota(c){
     if(!rt)throw 0;
     if(!map)return;
     const pts=rt.geometry.coordinates.map(p=>[p[1],p[0]]);
-    if(rLine){rLine.setLatLngs(pts);rGlow.setLatLngs(pts)}
+    if(rLine){rLine.setLatLngs(pts);rGlow.setLatLngs(pts);rLine.setStyle({color:ir?"#4da3ff":"#ffb300"});rGlow.setStyle({color:ir?"#1e6fff":"#ff7a1a"})}
     else{
-      rGlow=L.polyline(pts,{color:"#ff7a1a",weight:12,opacity:.28,lineCap:"round"}).addTo(map);
-      rLine=L.polyline(pts,{color:"#ffb300",weight:5,opacity:.95,lineCap:"round",lineJoin:"round"}).addTo(map);
+      rGlow=L.polyline(pts,{color:ir?"#1e6fff":"#ff7a1a",weight:12,opacity:.28,lineCap:"round"}).addTo(map);
+      rLine=L.polyline(pts,{color:ir?"#4da3ff":"#ffb300",weight:5,opacity:.95,lineCap:"round",lineJoin:"round"}).addTo(map);
     }
     if(!dMark)dMark=L.marker([dl,dg],{icon:L.divIcon({html:'<div class="pin">'+pico+'</div>',className:"",iconSize:[30,30],iconAnchor:[6,28]})}).addTo(map);
     const st=(rt.legs[0].steps||[]).find(s=>s.maneuver&&s.maneuver.type!=="depart"&&s.maneuver.type!=="arrive");
     let prox="";
     if(st){const m=st.maneuver,tx=m.type==="roundabout"||m.type==="rotary"?"Entre na rotatória":(MAN[m.modifier]||"Siga em frente");
       prox=`<div style="margin-top:3px">↪ ${tx}${st.name?" · "+esc(st.name):""}</div>`}
-    const i=$("mInfo");i.innerHTML=`<b>${fmtD(rt.distance)}</b> · ${Math.max(1,Math.round(rt.duration/60))} min${prox}`;i.style.display="block";
+    const i=$("mInfo");i.innerHTML=`<b>${fmtD(rt.distance)}</b> · ${Math.max(1,Math.round(rt.duration/60))} min${ir?(c.tipo==="entrega"?" · 🔵 até a coleta":" · 🔵 até o passageiro"):" · até o destino"}${prox}`;i.style.display="block";
     rFrom=[me.lat,me.lng];
     if(mudou){
       rKey=key;
@@ -463,7 +463,7 @@ async function rota(c){
     // sem rota online: linha reta como reserva
     if(mudou&&map){
       limparRota();
-      rGlow=L.polyline([[me.lat,me.lng],[dl,dg]],{color:"#ffb300",weight:4,dashArray:"8 10"}).addTo(map);
+      rGlow=L.polyline([[me.lat,me.lng],[dl,dg]],{color:ir?"#4da3ff":"#ffb300",weight:4,dashArray:"8 10"}).addTo(map);
       dMark=L.marker([dl,dg],{icon:L.divIcon({html:'<div class="pin">'+pico+'</div>',className:"",iconSize:[30,30],iconAnchor:[6,28]})}).addTo(map);
       rKey=key;rFrom=[me.lat,me.lng];
     }
